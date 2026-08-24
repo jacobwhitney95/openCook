@@ -6,10 +6,12 @@ Starts the in-process job worker via the lifespan and wires the routers.
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import FileResponse
 
 from app.api import admin, households, images, imports, jobs, sync
 from app.db import engine, init_db
@@ -69,6 +71,12 @@ app.include_router(images.router)
 app.include_router(households.router)
 app.include_router(sync.router)
 app.include_router(admin.router)
+
+
+@app.get("/", include_in_schema=False)
+def web_ui_page() -> FileResponse:
+    page = Path(__file__).resolve().parent / "static" / "index.html"
+    return FileResponse(page, media_type="text/html")
 
 
 @app.get("/health", tags=["meta"])
