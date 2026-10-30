@@ -1,16 +1,17 @@
-# One-command self-host for the openCook server. Ollama keeps running on the HOST
-# (it needs the GPU); this container only calls it over HTTP. See DOCKER.md.
+# One-command self-host for the openCook server. LocalAI runs separately on the HOST;
+# this container calls its OpenAI-compatible API over HTTP. See DOCKER.md.
 services:
   opencook:
     build: .
     container_name: opencook-server
     # Host networking: mDNS auto-discovery reaches the LAN AND the container reaches
-    # the host's Ollama at localhost:11434. (Linux host.)
+    # LocalAI at localhost:8081. (Linux host.)
     network_mode: host
     environment:
       OPENCOOK_DATA_DIR: /data
-      OPENCOOK_OLLAMA_BASE_URL: http://localhost:11434
-      OPENCOOK_OLLAMA_MODEL: qwen2.5vl:7b
+      OPENCOOK_AI_BASE_URL: ${OPENCOOK_AI_BASE_URL:-http://127.0.0.1:8081/v1}
+      OPENCOOK_AI_API_KEY: ${OPENCOOK_AI_API_KEY:-}
+      OPENCOOK_AI_MODEL: ${OPENCOOK_AI_MODEL:-gemma4-12b}
       OPENCOOK_SERVER_NAME: ${OPENCOOK_SERVER_NAME:-openCook}
       # OPENCOOK_BACKUP_DIR: /backups   # uncomment to store backups OUTSIDE the data volume
     volumes:

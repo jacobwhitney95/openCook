@@ -6,11 +6,11 @@ network. The recommended deployment is Docker; a plain Python run also works.
 ## Prerequisites
 
 - A Linux machine on the same LAN/Wi-Fi as the phones.
-- **[Ollama](https://ollama.com) running on the host** with the vision model pulled — it needs the
-  GPU, so it stays on the host even when the server runs in a container:
-  ```bash
-  ollama pull qwen2.5vl:7b
-  ```
+- A **vision-capable OpenAI-compatible Chat Completions API**. This deployment uses LocalAI,
+  configured at `http://127.0.0.1:8081/v1` with the local `gemma4-12b` model. Its Compose setup,
+  GPU backend, and model files are managed separately from this server. Ollama or another
+  compatible provider can be selected with the `OPENCOOK_AI_*` environment variables. Hosted
+  providers may receive uploaded recipe photos and may charge for inference.
 
 ## Docker (recommended)
 
@@ -23,8 +23,9 @@ docker compose logs -f               # "Job worker started", mDNS advertise line
 ```
 
 The container runs **only the server** (FastAPI + SQLite + the job worker + mDNS); it calls the
-host's Ollama over HTTP. `network_mode: host` is used so mDNS reaches the LAN and the container can
-reach Ollama at `localhost:11434`. `restart: unless-stopped` brings it back after a reboot.
+configured Chat Completions endpoint over HTTP. The default is LocalAI at
+`http://127.0.0.1:8081/v1`. `network_mode: host` is used so mDNS reaches the LAN and the container
+can reach LocalAI on localhost. `restart: unless-stopped` brings it back after a reboot.
 
 Hardening (already set in `docker-compose.yml`): non-root user (uid 10001), `read_only` root
 filesystem with a `/tmp` tmpfs, `cap_drop: ALL`, `no-new-privileges`. Only `/data` is writable. No
@@ -55,12 +56,51 @@ Environment variables, all prefixed `OPENCOOK_` (a `server/.env` file is read to
 | `OPENCOOK_HOST` | `0.0.0.0` | HTTP bind address |
 | `OPENCOOK_PORT` | `8000` | HTTP port |
 | `OPENCOOK_SERVER_NAME` | hostname | Name advertised over mDNS |
-| `OPENCOOK_OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama endpoint |
-| `OPENCOOK_OLLAMA_MODEL` | `qwen2.5vl:7b` | Vision model |
+| `OPENCOOK_AI_BASE_URL` | `http://127.0.0.1:8081/v1` | OpenAI-compatible API base URL |
+| `OPENCOOK_AI_MODEL` | `gemma4-12b` | Vision model name served by that API |
+| `OPENCOOK_AI_API_KEY` | unset | Optional API key; set this in the ignored `server/.env` for providers that require one |
 | `OPENCOOK_WORKER_POLL_INTERVAL` | `2.0` | Job worker poll interval (s) |
 | `OPENCOOK_BACKUP_DIR` | `<data_dir>/backups` | Backup archive location |
 | `OPENCOOK_BACKUP_KEEP` | `14` | Backups to retain (rotation) |
 | `OPENCOOK_ADMIN_PASSWORD` | — | Sets the admin password on first start (see below) |
+
+The client uses `POST /chat/completions` and sends the resized photo as a data URL. Choose a
+provider and model that support vision input. API keys belong in the ignored `server/.env`, never
+in a committed Compose file. For the local LocalAI endpoint, leave the API key unset.
+
+### VS Code with Continue
+
+Install the Continue extension in the VS Code environment that hosts this checkout, then configure
+its OpenAI-compatible provider in `~/.continue/config.yaml`:
+
+```yaml
+name: LocalAI
+version: 0.0.1
+schema: v1
+models:
+  - name: Gemma4 local
+    provider: openai
+    model: gemma4-12b
+    apiBase: http://127.0.0.1:8081/v1
+    apiKey: localai
+    roles:
+      - chat
+      - edit
+      - apply
+```
+
+The LocalAI endpoint is bound to loopback, so the placeholder key is not used for authentication.
+Use another model name if you install a different model in LocalAI. This URL is for a VS Code
+extension host running on the NAS. Don't expose the unauthenticated API to the LAN or public
+internet.
+
+Home Assistant's built-in Ollama integration is Ollama-specific, and its built-in OpenAI integration
+does not accept arbitrary compatible endpoints. The Apache-2.0 licensed LeonCode LLM Conversation
+custom integration can use LocalAI. Install it, add a config entry with base URL
+`http://127.0.0.1:8081/v1`, leave the API key blank, and create a conversation profile for
+`gemma4-12b` using Chat Completions. Expose only the entities you want the assistant to control;
+leave allowlisted service tools disabled unless needed. Immich's face-recognition and Smart Search
+use Immich's separate machine-learning API, not this OpenAI-compatible chat endpoint.
 
 ## Data
 
@@ -95,8 +135,9 @@ The console offers:
 - **Households** — rename, set/change/clear a PIN, or delete a household.
 - **Maintenance** — create/download/restore backups, change the admin password, full reset.
 
-The page itself is unauthenticated (it carries no data) and prompts for the password, which it sends
-on every data request. Keep it on the trusted LAN/VPN like the rest of the server.
+The web hostname is protected by the Authentik forward-auth outpost. After login, the page loads
+the sole household's invite code automatically; Android and the browser extension continue using
+the direct household-code API on port 8000. Keep both paths on the trusted LAN/VPN.
 
 ## Backup & restore
 
@@ -138,5 +179,5 @@ releases. Release steps are in [Building → Releasing](building.md#releasing).
 
 - Most endpoints are **unauthenticated by design** (trusted LAN/VPN). **Never expose port 8000 to
   the internet.** Admin endpoints are password-protected; households can also set a join PIN.
-- The server reaches no filesystem beyond `/data` (in Docker) and contacts no third party except the
-  host's Ollama.
+- The server reaches no filesystem beyond `/data` (in Docker) and sends recipe photos only to the
+  configured AI provider. The default provider is the local LocalAI service.

@@ -52,7 +52,9 @@ Releases go out via GitHub releases and F-Droid — there is no in-app updater.
 
 ## Server
 
-Requires Python 3.12+ and (for extraction) Ollama on the host with `qwen2.5vl:7b` pulled.
+Requires Python 3.12+ and a vision-capable OpenAI-compatible API for extraction. This deployment
+uses LocalAI with the local `gemma4-12b` model; Ollama can also be selected by setting
+`OPENCOOK_AI_BASE_URL` and `OPENCOOK_AI_MODEL`.
 
 ```bash
 cd server

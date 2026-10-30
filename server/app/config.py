@@ -7,6 +7,7 @@ import socket
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,11 +24,10 @@ class Settings(BaseSettings):
     # Friendly name advertised over mDNS so the app shows it in the server picker.
     server_name: str = socket.gethostname()
 
-    # Ollama vision model used for recipe extraction. qwen2.5vl:7b was validated
-    # against real cookbook photos and far outperforms llama3.2-vision:11b on
-    # German OCR, multi-recipe pages, rotation and reading printed nutrition.
-    ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "qwen2.5vl:7b"
+    # Vision-capable OpenAI Chat Completions endpoint used for recipe extraction.
+    ai_base_url: str = "http://localhost:8081/v1"
+    ai_api_key: SecretStr | None = None
+    ai_model: str = "gemma4-12b"
 
     # How often the in-process worker polls the jobs table (seconds).
     worker_poll_interval: float = 2.0

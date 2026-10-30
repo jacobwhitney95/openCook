@@ -1,7 +1,8 @@
 # Server
 
-Python 3.12+ FastAPI app with a SQLite database, an **in-process** async job worker, an Ollama
-client for recipe extraction, and mDNS advertising. No external queue or services.
+Python 3.12+ FastAPI app with a SQLite database, an **in-process** async job worker, an
+OpenAI-compatible vision client for recipe extraction, and mDNS advertising. No external queue is
+required.
 
 ## Layout
 
@@ -12,8 +13,8 @@ server/app/
   db.py            # SQLAlchemy engine, SQLite WAL, init_db(), get_session()
   models.py        # ORM: Household, ServerConfig, SyncMessage, ImportRecord, Job
   schemas.py       # Pydantic request/response DTOs
-  extraction.py    # qwen2.5vl pipeline → schema.org/Recipe + cropped photos
-  ollama_client.py # async HTTP client to Ollama (retries/backoff)
+  extraction.py    # vision-model pipeline → schema.org/Recipe + cropped photos
+  ai_client.py     # OpenAI-compatible vision API client (retries/backoff)
   worker.py        # background job loop
   sync.py          # HLC + per-field LWW + Merkle trie  (see sync.md)
   discovery.py     # mDNS advertiser (_opencook._tcp)
@@ -51,8 +52,9 @@ ORM tables (`models.py`):
 `extraction.py` turns a photo into recipes in a few steps:
 
 1. **Orient & resize** — `ImageOps.exif_transpose`, then `_smart_resize` to longest side ≤ 1008 px
-   with both dimensions a multiple of 28 (qwen2.5vl's pixel budget; keeps box coords mapping 1:1).
-2. **Text call** — the content-language prompt (`load_i18n(language).text_prompt`) → Ollama →
+   with both dimensions a multiple of 28 (keeps box coords mapping 1:1).
+2. **Text call** — the content-language prompt (`load_i18n(language).text_prompt`) → configured
+   vision provider →
    `{"recipes": [{title, servings, category, tags, prep_time, cook_time, ingredients[], steps[],
    nutrition, notes}]}` (lenient JSON parse). `category` is a universal key (`pasta/meat/…`).
 3. **Box call** — `box_prompt` → `{"dish_photos": [{recipe_title, box:[x1,y1,x2,y2]}]}` in
@@ -63,8 +65,12 @@ ORM tables (`models.py`):
    (`openCookIngredients`, `openCookServings`, `openCookCategory`, `openCookTags`, `openCookNotes`,
    `openCookSourcePhoto`), `nutrition` (only if printed), and ISO-8601 `prepTime`/`cookTime`.
 
-Ollama is reached via `ollama_client.py` at `OPENCOOK_OLLAMA_BASE_URL`, model
-`OPENCOOK_OLLAMA_MODEL` (default `qwen2.5vl:7b`), with retries + backoff on transport/5xx errors.
+Recipe extraction uses `app/ai_client.py`, which sends vision requests to the configured
+OpenAI-compatible Chat Completions endpoint. In this deployment, `OPENCOOK_AI_BASE_URL` defaults
+to `http://127.0.0.1:8081/v1`, `OPENCOOK_AI_MODEL` defaults to `gemma4-12b`, and an optional
+`OPENCOOK_AI_API_KEY` supplies credentials for providers that require them. Other providers must
+support image input and return the JSON requested by the extraction prompts. Transport and HTTP
+failures are retried with backoff.
 
 **Localization:** prompts, duration words, units and category aliases live in per-language JSON
 under `app/i18n/` (`en.json` = source/fallback), loaded by `load_i18n(language)` where `language`
@@ -84,7 +90,7 @@ is the household content language sent with the job. Adding a language = a new `
 ## Config
 
 All env vars are prefixed `OPENCOOK_` (`config.py`, `.env` supported): `DATA_DIR`, `HOST`, `PORT`,
-`SERVER_NAME`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `WORKER_POLL_INTERVAL`, `BACKUP_DIR`,
+`SERVER_NAME`, `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, `WORKER_POLL_INTERVAL`, `BACKUP_DIR`,
 `BACKUP_KEEP`, `ADMIN_PASSWORD`. See the table in [Self-hosting](self-hosting.md).
 
 ## Tests

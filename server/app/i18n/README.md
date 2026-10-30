@@ -7,7 +7,7 @@ Each file:
 
 | key | meaning |
 |---|---|
-| `text_prompt` | the main extraction prompt (qwen2.5vl) — **engineering, review changes carefully** |
+| `text_prompt` | the main vision-model extraction prompt, originally validated with qwen2.5vl — **engineering, review changes carefully** |
 | `box_prompt` | the dish-photo bounding-box prompt |
 | `duration_hours` / `duration_minutes` | words that mark hours/minutes in prep/cook times |
 | `units` | recognized measuring units (kept verbatim; never converted) |

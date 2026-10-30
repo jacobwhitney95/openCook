@@ -47,6 +47,7 @@ GETs. Jobs, imports and admin are server-only.
 | Method | Path | Headers | Purpose |
 |---|---|---|---|
 | GET | `/households` | — | List households for the join picker (`id, name, settings, protected, created_at`). Invite codes are never exposed here. |
+| GET | `/households/current` | `X-authentik-email` or `X-authentik-username` | Return the sole household, including its invite code, to the Authentik-protected web client. |
 | POST | `/households` | — | Create a household (`name, settings, pin, admin_password`, optional `id` + `invite_code`). `admin_password` is a legacy bootstrap path kept for scripted setups; the app no longer sends it. → `201` `{household_id, invite_code, name, settings}`. Sets the server admin password only on first create. Client-supplied `id`/`invite_code` serve the attach-a-server flow for serverless households — idempotent for an existing id with the matching code, `409` on a code mismatch or an invite-code collision. |
 | POST | `/households/{household_id}/join` | — | Join (`pin` if protected). → `{… invite_code}`. |
 | PATCH | `/households/{household_id}` | `X-Household-Code` | Partial update of `name`/`settings`/`pin`. |

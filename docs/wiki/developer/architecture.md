@@ -6,7 +6,7 @@ openCook is a monorepo with two halves that talk over HTTP:
 ┌──────────────────────────┐         ┌───────────────────────────────┐
 │  app/  (Android client)  │  HTTP   │  server/  (FastAPI backend)   │
 │  Kotlin · Compose · Room │ ──────▶ │  SQLite · in-process worker   │
-│  offline-first, MVVM/UDF │ ◀────── │  Ollama (vision) · mDNS       │
+│  offline-first, MVVM/UDF │ ◀────── │  LocalAI (vision) · mDNS      │
 └──────────────────────────┘         └───────────────────────────────┘
 ```
 
@@ -22,9 +22,10 @@ openCook is a monorepo with two halves that talk over HTTP:
 
 - **Offline-first.** The app never depends on the server for core use. Anything server-backed
   (scan, sync, web import) degrades gracefully and retries.
-- **No account, LAN/VPN trust model.** There is no per-user authentication. A *household* is the
-  sync scope, joined by a shared **invite code** sent in the `X-Household-Code` header. The server
-  is meant for a trusted home network and must not be exposed to the internet.
+- **Web SSO, household sync.** The tailnet web hostname is protected by Authentik forward-auth;
+  the browser obtains the sole household's invite code after login. Android and the extension
+  retain the direct household-code API, which is meant for a trusted LAN/VPN and must not be
+  exposed to the internet.
 - **schema.org/Recipe as the interchange format.** Extraction produces
   [schema.org/Recipe](https://schema.org/Recipe) JSON-LD (with `openCook*` extension fields for
   structured ingredients, servings, etc.). The app's internal Room model is a richer superset.
@@ -35,7 +36,8 @@ openCook is a monorepo with two halves that talk over HTTP:
 
 **Recipe scan (async):**
 photo → app `POST /jobs` → server stores the image and queues a `Job` → an in-process worker calls
-**Ollama** (`qwen2.5vl:7b`) → schema.org recipe(s) + cropped dish photos → app polls `GET /jobs/{id}`
+the configured **OpenAI-compatible vision API** (LocalAI by default in this deployment) →
+schema.org recipe(s) + cropped dish photos → app polls `GET /jobs/{id}`
 (active coroutine while open, WorkManager when backgrounded) → **Review** screen → saved to Room.
 
 **Sync (delta):**

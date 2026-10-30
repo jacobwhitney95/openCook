@@ -1,15 +1,15 @@
 """Recipe extraction pipeline: cookbook photo -> schema.org/Recipe objects.
 
-Two focused qwen2.5vl calls (validated against real photos in scripts/):
+Two focused vision-model calls:
   1. text + structure (title, ingredients, steps, servings, times, nutrition)
   2. dish-photo bounding boxes (for auto-cropping)
 Boxes are matched to recipes by title and the dish images are cropped from the
 original (full-resolution) photo with Pillow.
 
 Lessons baked in (see memory/extraction-model.md):
-  - qwen returns absolute pixel coords in the SENT image space -> we send a
-    controlled size (multiple of 28) so coords map 1:1.
-  - Ollama's hard `format: "json"` 500s on some images -> we parse leniently.
+  - the box prompt requests absolute pixel coords in the sent image space, so
+    the image is resized once and reused for both model calls.
+  - Providers differ in JSON-mode support -> we parse responses leniently.
 """
 
 import difflib
@@ -25,11 +25,11 @@ from pathlib import Path
 
 from PIL import Image, ImageOps
 
-from app.ollama_client import OllamaClient
+from app.ai_client import VisionModelClient
 
 logger = logging.getLogger(__name__)
 
-SENT_LONG_SIDE = 1008  # multiple of 28, within qwen2.5vl's pixel budget
+SENT_LONG_SIDE = 1008  # multiple of 28; validated with the original vision prompts
 
 
 # Stable category keys (universal across languages; mirror of the app's RecipeCategories).
@@ -198,7 +198,7 @@ def _assign_boxes(recipe_titles: list[str], boxes: list[_Box]) -> dict[int, _Box
 
 
 class RecipeExtractor:
-    def __init__(self, client: OllamaClient, images_dir: Path) -> None:
+    def __init__(self, client: VisionModelClient, images_dir: Path) -> None:
         self._client = client
         self._images_dir = images_dir
 

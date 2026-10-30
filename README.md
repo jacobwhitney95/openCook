@@ -58,9 +58,10 @@ openCook comes in two parts:
   the household invite code is the shared secret). The phone-to-phone switch keeps each phone
   reachable for the family even with the app closed, at the cost of a small silent notification.
 * **An optional server** you host at home adds what phones can't do alone: reading recipes
-  from photos (the AI runs only on *your* machine), browser import, server-side archives — and sync that
-  also works while nobody has the app open. You can add it to a serverless household later
-  in Settings, keeping the same invite code.
+  from photos (using a local model by default), browser import, server-side archives — and sync
+  that also works while nobody has the app open. The server can use any compatible vision-model
+  API; a hosted provider will receive uploaded recipe photos. You can add it to a serverless
+  household later in Settings, keeping the same invite code.
 
 If the server is off or out of reach, the app keeps working: photo scans queue until it's back,
 and the family's lists keep syncing directly between phones on the same Wi-Fi.
@@ -79,9 +80,10 @@ Android Studio).
 
 ### Server (optional)
 
-Needed only for reading recipes from photos and family sync. Requires Python 3.12+ and
-[Ollama](https://ollama.com) running on the same machine with the vision model pulled
-(`ollama pull qwen2.5vl:7b`).
+Needed only for reading recipes from photos and family sync. Requires Python 3.12+ and a
+vision-capable OpenAI-compatible API. The default self-hosted deployment uses LocalAI at
+`http://127.0.0.1:8081/v1` with the local `gemma4-12b` model. You can configure any compatible
+provider with the `OPENCOOK_AI_*` environment variables.
 
 ```bash
 cd server
@@ -113,8 +115,9 @@ Full guides live in [`docs/wiki/`](docs/wiki/README.md) — a **user** track (ho
 
 # Privacy :lock:
 
-openCook has no ads, no tracking, and asks for no unnecessary permissions. There's no account and
-nothing in the cloud. Any AI runs on **your own** server, the family sync stays on your home
+openCook has no ads, no tracking, and asks for no unnecessary permissions. There's no account.
+With the default local model, recipe photos stay on **your own** server; if you configure a hosted
+AI provider, photos are sent to that provider for processing. Family sync stays on your home
 network, and family members join with a simple invite code. Without a server, the app never goes
 online at all.
 

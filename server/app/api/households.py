@@ -97,6 +97,23 @@ def list_households(session: Session = Depends(get_session)) -> list[HouseholdSu
     ]
 
 
+@router.get("/current", response_model=HouseholdResponse)
+def current_household(
+    x_authentik_email: str | None = Header(default=None, alias="X-authentik-email"),
+    x_authentik_username: str | None = Header(default=None, alias="X-authentik-username"),
+    session: Session = Depends(get_session),
+) -> HouseholdResponse:
+    """Return the sole household to the authenticated openCook web client."""
+    if not x_authentik_email and not x_authentik_username:
+        raise HTTPException(status_code=401, detail="Authentik login required")
+    households = session.scalars(select(Household).order_by(Household.created_at)).all()
+    if not households:
+        raise HTTPException(status_code=404, detail="No household configured")
+    if len(households) > 1:
+        raise HTTPException(status_code=409, detail="Choose a household before continuing")
+    return _to_response(households[0])
+
+
 @router.post("", response_model=HouseholdResponse, status_code=201)
 def create_household(
     body: HouseholdCreateRequest, session: Session = Depends(get_session)

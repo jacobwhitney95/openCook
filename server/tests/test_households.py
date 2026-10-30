@@ -35,6 +35,17 @@ def test_household_size_defaults_when_unset() -> None:
         assert body["settings"]["household_size"] == 2
 
 
+def test_current_household_requires_authentik_identity() -> None:
+    with TestClient(app) as client:
+        body = client.post("/households", json={"name": "Current"}).json()
+        assert client.get("/households/current").status_code == 401
+        current = client.get(
+            "/households/current", headers={"X-authentik-email": "person@example.com"}
+        )
+        assert current.status_code == 200
+        assert current.json()["invite_code"] == body["invite_code"]
+
+
 def test_join_unknown_household_404() -> None:
     with TestClient(app) as client:
         assert client.post("/households/nope/join", json={}).status_code == 404
