@@ -9,3 +9,6 @@ data/
 .env
 .pytest_cache/
 *.egg-info/
+
+# Tailscale node state for the serve sidecar (private keys; never commit)
+ts-state*/
