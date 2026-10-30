@@ -78,6 +78,7 @@ object RecipeDtoEncoder {
                 )
             },
             cookbook = r.cookbook,
+            url = r.sourceUrl,
             openCookLastCookedAt = r.lastCookedAt,
             openCookCreatedAt = r.createdAt,
             openCookUpdatedAt = r.updatedAt,

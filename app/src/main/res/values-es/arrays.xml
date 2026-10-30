@@ -1,0 +1,361 @@
+<!--
+  ~  openCook
+  ~  Copyright (C) 2026 olie.xdev <olie.xdeveloper@googlemail.com>
+  ~
+  ~  This program is free software: you can redistribute it and/or modify
+  ~  it under the terms of the GNU General Public License as published by
+  ~  the Free Software Foundation, either version 3 of the License, or
+  ~  (at your option) any later version.
+  ~
+  ~  This program is distributed in the hope that it will be useful,
+  ~  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~  GNU General Public License for more details.
+  ~
+  ~  You should have received a copy of the GNU General Public License
+  ~  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<!-- These are *vocabulary* lists, not positional arrays: each language names as many words as
+     it needs, and they are unioned across languages at runtime. InconsistentArrays compares
+     item counts between locales, which is meaningless here. Typos flags the deliberate
+     accentless spellings (azucar, cafe, judia) that let typed ingredient names match too. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="InconsistentArrays,Typos">
+    <!-- Grocery-aisle keyword lists (substring match, lower-case). Order of aisles is fixed
+         in code; first matching aisle wins. Items with leading/trailing spaces are quoted.
+         Short Spanish words need a space so they only match as a whole word: "sal " must not
+         swallow "salsa"/"ensalada", "ajo " not "ajonjolí", "pan " not "panceta", " té" not
+         "paté", " res " not "fresas". Common words are listed with and without the accent
+         (limón/limon) because matching does not fold accents; Latin American variants
+         (papa, jugo, camarón…) are included so imported recipes from those sites group too. -->
+    <string-array name="grocery_kw_frozen">
+        <item>congelado</item><item>helado</item><item>sorbete</item><item>polo</item>
+    </string-array>
+    <string-array name="grocery_kw_meat_fish">
+        <item>pollo</item><item>pavo</item><item>pechuga</item><item>muslo</item><item>ternera</item>
+        <item>vacuno</item><item>cerdo</item><item>lomo</item><item>solomillo</item><item>cordero</item>
+        <item>conejo</item><item>carne</item><item>"carne picada"</item><item>hamburguesa</item><item>jamón</item>
+        <item>jamon</item><item>chorizo</item><item>salchicha</item><item>salchichón</item><item>morcilla</item>
+        <item>panceta</item><item>beicon</item><item>pescado</item><item>filete</item><item>salmón</item>
+        <item>salmon</item><item>atún</item><item>atun</item><item>bacalao</item><item>merluza</item>
+        <item>dorada</item><item>lubina</item><item>sardina</item><item>anchoa</item><item>boquerón</item>
+        <item>gamba</item><item>langostino</item><item>mejillón</item><item>mejillon</item><item>calamar</item>
+        <item>sepia</item><item>pulpo</item><item>marisco</item><item>" res "</item><item>puerco</item>
+        <item>camarón</item><item>camaron</item><item>paté</item>
+    </string-array>
+    <string-array name="grocery_kw_produce">
+        <item>tomate</item><item>pimiento</item><item>cebolla</item><item>"ajo "</item><item>zanahoria</item>
+        <item>patata</item><item>lechuga</item><item>ensalada</item><item>pepino</item><item>calabacín</item>
+        <item>calabacin</item><item>brócoli</item><item>brocoli</item><item>coliflor</item><item>"col "</item>
+        <item>repollo</item><item>espinaca</item><item>puerro</item><item>champiñón</item><item>champinon</item>
+        <item>seta</item><item>manzana</item><item>plátano</item><item>platano</item><item>limón</item>
+        <item>limon</item><item>lima</item><item>naranja</item><item>mandarina</item><item>fresa</item>
+        <item>frambuesa</item><item>arándano</item><item>cereza</item><item>uva</item><item>pera</item>
+        <item>melocotón</item><item>melocoton</item><item>piña</item><item>melón</item><item>sandía</item>
+        <item>kiwi</item><item>mango</item><item>aguacate</item><item>jengibre</item><item>guindilla</item>
+        <item>perejil</item><item>albahaca</item><item>cilantro</item><item>menta</item><item>hierbabuena</item>
+        <item>cebollino</item><item>judía</item><item>judia</item><item>guisante</item><item>maíz</item>
+        <item>maiz</item><item>calabaza</item><item>berenjena</item><item>apio</item><item>rúcula</item>
+        <item>rucula</item><item>espárrago</item><item>esparrago</item><item>alcachofa</item><item>remolacha</item>
+        <item>brote</item><item>hierba</item><item>verdura</item><item>fruta</item><item>papa</item>
+        <item>chile</item><item>durazno</item><item>palta</item><item>elote</item><item>ejote</item>
+        <item>banana</item><item>granada</item><item>albaricoque</item><item>ciruela</item><item>nectarina</item>
+        <item>pomelo</item><item>caqui</item><item>membrillo</item><item>dátil</item><item>higo</item>
+        <item>" mora"</item><item>fresón</item><item>endivia</item><item>escarola</item><item>rábano</item>
+        <item>boniato</item><item>chirivía</item><item>acelga</item><item>berro</item><item>canónigos</item>
+        <item>lombarda</item><item>nabo</item><item>cebolleta</item><item>chalota</item><item>cogollo</item>
+        <item>shiitake</item><item>grosella</item><item>paraguayo</item>
+    </string-array>
+    <string-array name="grocery_kw_bakery">
+        <item>"pan "</item><item>panecillo</item><item>bollo</item><item>tostada</item><item>baguette</item>
+        <item>croissant</item><item>cruasán</item><item>brioche</item><item>biscote</item><item>pita</item>
+        <item>picatostes</item>
+    </string-array>
+    <string-array name="grocery_kw_drinks">
+        <item>agua</item><item>zumo</item><item>café</item><item>cafe</item><item>" té"</item>
+        <item>infusión</item><item>refresco</item><item>gaseosa</item><item>cerveza</item><item>vino</item>
+        <item>cava</item><item>sidra</item><item>batido</item><item>jugo</item><item>vermut</item>
+        <item>horchata</item>
+    </string-array>
+    <string-array name="grocery_kw_spices">
+        <item>"sal "</item><item>pimienta</item><item>pimentón</item><item>pimenton</item><item>curry</item>
+        <item>comino</item><item>canela</item><item>"nuez moscada"</item><item>orégano</item><item>oregano</item>
+        <item>tomillo</item><item>romero</item><item>laurel</item><item>azafrán</item><item>cúrcuma</item>
+        <item>colorante</item><item>"salsa de soja"</item><item>vinagre</item><item>mostaza</item><item>kétchup</item>
+        <item>ketchup</item><item>mayonesa</item><item>caldo</item><item>"concentrado de tomate"</item><item>vainilla</item>
+        <item>especia</item><item>aceite</item><item>salsa</item><item>sésamo</item><item>ajonjolí</item>
+    </string-array>
+    <string-array name="grocery_kw_pantry">
+        <item>pasta</item><item>espagueti</item><item>macarrón</item><item>macarrones</item><item>fideo</item>
+        <item>arroz</item><item>harina</item><item>azúcar</item><item>azucar</item><item>lenteja</item>
+        <item>garbanzo</item><item>alubia</item><item>cuscús</item><item>quinoa</item><item>avena</item>
+        <item>muesli</item><item>cereales</item><item>lata</item><item>conserva</item><item>"leche de coco"</item>
+        <item>levadura</item><item>miel</item><item>mermelada</item><item>chocolate</item><item>cacao</item>
+        <item>polenta</item><item>sémola</item><item>aceituna</item><item>almendra</item><item>nuez</item>
+        <item>"frutos secos"</item><item>galleta</item><item>frijol</item><item>poroto</item><item>nueces</item>
+        <item>pepinillo</item>
+    </string-array>
+    <string-array name="grocery_kw_dairy">
+        <item>leche</item><item>nata</item><item>mantequilla</item><item>yogur</item><item>queso</item>
+        <item>requesón</item><item>huevo</item><item>mozzarella</item><item>parmesano</item><item>feta</item>
+        <item>margarina</item><item>kéfir</item><item>ricotta</item><item>crema</item>
+    </string-array>
+
+    <!-- Background staples the meal-planner excludes from the reuse score. -->
+    <string-array name="ingredient_staples">
+        <item>sal</item><item>"sal y pimienta"</item><item>pimienta</item><item>"pimienta negra"</item><item>"pimienta blanca"</item>
+        <item>aceite</item><item>"aceite de oliva"</item><item>"aceite de oliva virgen extra"</item><item>"aceite de girasol"</item><item>"aceite vegetal"</item>
+        <item>mantequilla</item><item>agua</item><item>vinagre</item><item>azúcar</item><item>harina</item>
+        <item>caldo</item><item>"caldo de verduras"</item><item>"caldo de pollo"</item><item>"pastilla de caldo"</item><item>mostaza</item>
+        <item>"concentrado de tomate"</item><item>"salsa de soja"</item><item>pimentón</item><item>"nuez moscada"</item><item>miel</item>
+        <item>"levadura química"</item><item>"levadura en polvo"</item><item>"azúcar avainillado"</item><item>"levadura seca"</item><item>levadura</item>
+        <item>"polvo de hornear"</item>
+    </string-array>
+
+    <!-- Staples seeded into a new household's pantry (display spelling). -->
+    <string-array name="pantry_defaults">
+        <item>Sal</item><item>Pimienta</item><item>Aceite de oliva</item><item>Mantequilla</item><item>Vinagre</item>
+        <item>Azúcar</item><item>Harina</item><item>Caldo de verduras</item><item>Pastilla de caldo</item><item>Mostaza</item>
+        <item>Concentrado de tomate</item><item>Salsa de soja</item><item>Pimentón</item><item>Nuez moscada</item><item>Miel</item>
+        <item>Levadura química</item><item>Azúcar avainillado</item><item>Levadura seca</item>
+    </string-array>
+
+    <!-- Recognized measuring units (kept verbatim; never converted). Metric is universal. -->
+    <string-array name="ingredient_units">
+        <item>g</item><item>kg</item><item>mg</item><item>l</item><item>ml</item>
+        <item>cl</item><item>dl</item><item>litro</item><item>litros</item><item>gramo</item>
+        <item>gramos</item><item>kilo</item><item>kilos</item><item>kilogramo</item><item>kilogramos</item>
+        <item>cucharada</item><item>cucharadas</item><item>cda</item><item>cdas</item><item>cucharada sopera</item>
+        <item>cucharadas soperas</item><item>cucharadita</item><item>cucharaditas</item><item>cdta</item><item>cdtas</item>
+        <item>cdita</item><item>cditas</item><item>taza</item><item>tazas</item><item>vaso</item>
+        <item>vasos</item><item>bol</item><item>cuenco</item><item>lata</item><item>latas</item>
+        <item>bote</item><item>botes</item><item>tarro</item><item>tarros</item><item>sobre</item>
+        <item>sobres</item><item>paquete</item><item>paquetes</item><item>bolsa</item><item>bolsas</item>
+        <item>brik</item><item>briks</item><item>tetrabrik</item><item>pizca</item><item>pizcas</item>
+        <item>pellizco</item><item>diente</item><item>dientes</item><item>manojo</item><item>manojos</item>
+        <item>ramillete</item><item>loncha</item><item>lonchas</item><item>rebanada</item><item>rebanadas</item>
+        <item>rodaja</item><item>rodajas</item><item>trozo</item><item>trozos</item><item>pieza</item>
+        <item>piezas</item><item>unidad</item><item>unidades</item><item>ración</item><item>raciones</item>
+        <item>porción</item><item>porciones</item><item>rama</item><item>ramas</item><item>ramita</item>
+        <item>ramitas</item><item>hoja</item><item>hojas</item><item>cabeza</item><item>cabezas</item>
+        <item>tallo</item><item>tallos</item><item>gota</item><item>gotas</item><item>chorro</item>
+        <item>chorrito</item><item>chorritos</item><item>puñado</item><item>puñados</item><item>oz</item>
+        <item>lb</item><item>lbs</item><item>libra</item><item>libras</item><item>mililitro</item>
+        <item>mililitros</item><item>centilitro</item><item>centilitros</item><item>decilitro</item><item>decilitros</item>
+        <item>miligramo</item><item>miligramos</item>
+    </string-array>
+
+    <!-- Main-protein keywords for the meal-planner variety scoring (substring match, lower-case).
+         Grouped by a fixed canonical key; only the keywords are translated per language. -->
+    <string-array name="protein_kw_poultry">
+        <item>pollo</item><item>pavo</item><item>pato</item><item>gallina</item><item>codorniz</item>
+        <item>pechuga</item><item>contramuslo</item>
+    </string-array>
+    <string-array name="protein_kw_fish">
+        <item>pescado</item><item>salmón</item><item>salmon</item><item>atún</item><item>atun</item>
+        <item>trucha</item><item>bacalao</item><item>merluza</item><item>dorada</item><item>lubina</item>
+        <item>sardina</item><item>caballa</item><item>bonito</item><item>rape</item><item>anchoa</item>
+        <item>boquerón</item><item>gamba</item><item>langostino</item><item>mejillón</item><item>mejillon</item>
+        <item>calamar</item><item>sepia</item><item>pulpo</item><item>marisco</item><item>camarón</item>
+    </string-array>
+    <string-array name="protein_kw_mince">
+        <item>carne picada</item><item>albóndiga</item><item>albondiga</item><item>hamburguesa</item>
+    </string-array>
+    <string-array name="protein_kw_pork">
+        <item>cerdo</item><item>jamón</item><item>jamon</item><item>panceta</item><item>beicon</item>
+        <item>chorizo</item><item>lomo</item><item>costilla</item><item>salchicha</item><item>morcilla</item>
+        <item>sobrasada</item><item>cochinillo</item><item>puerco</item>
+    </string-array>
+    <string-array name="protein_kw_beef">
+        <item>ternera</item><item>vacuno</item><item>buey</item><item>entrecot</item><item>chuletón</item>
+        <item>carne de res</item>
+    </string-array>
+    <string-array name="protein_kw_lamb">
+        <item>cordero</item><item>lechazo</item><item>cabrito</item>
+    </string-array>
+    <string-array name="protein_kw_plant">
+        <item>tofu</item><item>tempeh</item><item>seitán</item><item>seitan</item><item>soja texturizada</item>
+    </string-array>
+
+    <!-- Legacy/import category words → the fixed category keys (exact match, lower-case).
+         The keys themselves ("pasta", "meat", …) always match and need no entry here; add only
+         the words your language uses when a recipe was imported or written by hand. -->
+    <string-array name="cat_alias_pasta">
+        <item>pastas</item><item>fideos</item>
+    </string-array>
+    <string-array name="cat_alias_meat">
+        <item>carne</item><item>carnes</item><item>aves</item><item>carnes y aves</item>
+    </string-array>
+    <string-array name="cat_alias_fish">
+        <item>pescado</item><item>pescados</item><item>marisco</item><item>mariscos</item><item>pescados y mariscos</item>
+        <item>pescado y marisco</item>
+    </string-array>
+    <string-array name="cat_alias_soup">
+        <item>sopa</item><item>sopas</item><item>crema</item><item>cremas</item><item>sopas y cremas</item>
+        <item>cremas y sopas</item><item>potaje</item><item>guiso</item><item>guisos</item>
+    </string-array>
+    <string-array name="cat_alias_vegetarian">
+        <item>vegetariana</item><item>vegetariano</item><item>vegetarianas</item><item>vegana</item><item>vegano</item>
+        <item>verduras</item>
+    </string-array>
+    <string-array name="cat_alias_salad">
+        <item>ensalada</item><item>ensaladas</item>
+    </string-array>
+    <string-array name="cat_alias_dessert">
+        <item>postre</item><item>postres</item><item>dulces</item><item>repostería</item><item>reposteria</item>
+        <item>tartas</item><item>postres y dulces</item>
+    </string-array>
+    <string-array name="cat_alias_other">
+        <item>otra</item><item>otro</item><item>otras</item><item>otros</item><item>varios</item>
+    </string-array>
+
+    <!-- Legacy/import meal words → the fixed meal-type keys (exact match, lower-case).
+         The keys themselves ("breakfast", "lunch", "snack", "dinner") need no entry. -->
+    <string-array name="mealtype_alias_breakfast">
+        <item>desayuno</item><item>desayunos</item><item>brunch</item>
+    </string-array>
+    <string-array name="mealtype_alias_lunch">
+        <item>comida</item><item>comidas</item><item>mediodía</item><item>plato principal</item><item>primer plato</item>
+        <item>segundo plato</item><item>primeros</item><item>segundos</item>
+    </string-array>
+    <string-array name="mealtype_alias_snack">
+        <item>almuerzo / merienda</item><item>almuerzo</item><item>merienda</item><item>meriendas</item><item>tentempié</item>
+        <item>aperitivo</item><item>aperitivos</item><item>picoteo</item><item>tapa</item><item>tapas</item>
+    </string-array>
+    <string-array name="mealtype_alias_dinner">
+        <item>cena</item><item>cenas</item><item>noche</item>
+    </string-array>
+
+    <!-- Language mechanics for ingredient matching. All four are optional: leave a list out and
+         the English/German fallback applies — nothing breaks, matching is just less precise. -->
+
+    <!-- Measure and vague-amount words that leak into an ingredient *name*. "de" is listed on its
+         own because the line parser leaves it on the name ("2 cucharadas de aceite" → unit
+         "cucharadas", name "de aceite"), and no Spanish ingredient starts with it; every unit is
+         also listed with its "de", so a whole line typed into the name field reduces too. Not "hoja",
+         "rama", "cabeza", "tallo": they start real names (hoja de laurel, cabeza de ajo). -->
+    <string-array name="ingredient_leading_noise">
+        <item>"un poco de"</item><item>"un poquito de"</item><item>"una pizca de"</item><item>"un pellizco de"</item><item>"un puñado de"</item>
+        <item>"un chorrito de"</item><item>"un chorro de"</item><item>"unas gotas de"</item><item>"unas ramitas de"</item><item>unos</item>
+        <item>unas</item><item>algunos</item><item>algunas</item><item>aproximadamente</item><item>aprox.</item>
+        <item>aprox</item><item>"al gusto"</item><item>de</item><item>g</item><item>kg</item>
+        <item>mg</item><item>ml</item><item>cl</item><item>dl</item><item>l</item>
+        <item>cucharada</item><item>cucharadas</item><item>"cucharada sopera"</item><item>"cucharadas soperas"</item><item>cucharadita</item>
+        <item>cucharaditas</item><item>cda</item><item>cdas</item><item>cdta</item><item>cdtas</item>
+        <item>pizca</item><item>pizcas</item><item>pellizco</item><item>diente</item><item>dientes</item>
+        <item>loncha</item><item>lonchas</item><item>rebanada</item><item>rebanadas</item><item>rodaja</item>
+        <item>rodajas</item><item>lata</item><item>latas</item><item>bote</item><item>botes</item>
+        <item>tarro</item><item>tarros</item><item>sobre</item><item>sobres</item><item>paquete</item>
+        <item>paquetes</item><item>vaso</item><item>vasos</item><item>taza</item><item>tazas</item>
+        <item>bol</item><item>manojo</item><item>puñado</item><item>gota</item><item>gotas</item>
+        <item>chorrito</item><item>chorro</item><item>ramita</item><item>ramitas</item><item>trozo</item>
+        <item>trozos</item><item>unidad</item><item>unidades</item><item>"g de"</item><item>"kg de"</item>
+        <item>"mg de"</item><item>"ml de"</item><item>"cl de"</item><item>"dl de"</item><item>"l de"</item>
+        <item>"cucharada de"</item><item>"cucharadas de"</item><item>"cucharadita de"</item><item>"cucharaditas de"</item><item>"cda de"</item>
+        <item>"cdas de"</item><item>"cdta de"</item><item>"cdtas de"</item><item>"pizca de"</item><item>"pizcas de"</item>
+        <item>"pellizco de"</item><item>"diente de"</item><item>"dientes de"</item><item>"loncha de"</item><item>"lonchas de"</item>
+        <item>"rebanada de"</item><item>"rebanadas de"</item><item>"rodaja de"</item><item>"rodajas de"</item><item>"lata de"</item>
+        <item>"latas de"</item><item>"bote de"</item><item>"botes de"</item><item>"tarro de"</item><item>"tarros de"</item>
+        <item>"sobre de"</item><item>"sobres de"</item><item>"paquete de"</item><item>"paquetes de"</item><item>"vaso de"</item>
+        <item>"vasos de"</item><item>"taza de"</item><item>"tazas de"</item><item>"bol de"</item><item>"manojo de"</item>
+        <item>"puñado de"</item><item>"gota de"</item><item>"gotas de"</item><item>"chorrito de"</item><item>"chorro de"</item>
+        <item>"ramita de"</item><item>"ramitas de"</item><item>"trozo de"</item><item>"trozos de"</item><item>"unidad de"</item>
+        <item>"unidades de"</item><item>mililitro</item><item>mililitros</item><item>centilitro</item><item>centilitros</item>
+        <item>decilitro</item><item>decilitros</item><item>miligramo</item><item>miligramos</item><item>"mililitro de"</item>
+        <item>"mililitros de"</item><item>"centilitro de"</item><item>"centilitros de"</item><item>"decilitro de"</item><item>"decilitros de"</item>
+        <item>"miligramo de"</item><item>"miligramos de"</item>
+    </string-array>
+
+    <!-- "aceite para freír" is still oil. Not "al"/"con" — they join real dish names. -->
+    <string-array name="ingredient_use_phrases">
+        <item>para</item>
+    </string-array>
+
+    <!-- Suffixes relating a plural to its singular ("tomatoes"/"tomato"). -->
+    <string-array name="ingredient_plural_suffixes">
+        <item>s</item><item>es</item>
+    </string-array>
+
+    <!-- Spanish puts the head noun FIRST and marks the modifier: "aceite de oliva" → aceite,
+         "pollo al curry" → pollo. Not "con": "arroz con leche" is a dessert, not rice. -->
+    <string-array name="ingredient_head_connectors">
+        <item>de</item><item>del</item><item>al</item><item>a</item>
+    </string-array>
+
+    <!-- Same-product groups, "|"-separated. Keep short: a wrong entry silently merges
+         two real ingredients. -->
+    <string-array name="ingredient_synonyms">
+        <item>patata|papa</item>
+        <item>pimienta|pimienta negra</item>
+        <item>nata|crema de leche</item>
+        <item>maicena|almidón de maíz|fécula de maíz</item>
+        <item>bicarbonato|bicarbonato sódico|bicarbonato de sodio</item>
+        <item>levadura química|levadura en polvo|polvo de hornear</item>
+        <item>cebolleta|cebolla tierna</item>
+        <item>zumo de limón|jugo de limón</item>
+    </string-array>
+
+    <!-- "Never the same" pairs, "|"-separated, exactly two per line. These block a staple from
+         swallowing a named variety once head detection generalizes. -->
+    <string-array name="ingredient_distinctions">
+        <item>leche de coco|leche</item>
+        <item>leche de almendras|leche</item>
+        <item>leche de avena|leche</item>
+        <item>leche de soja|leche</item>
+        <item>leche condensada|leche</item>
+        <item>leche evaporada|leche</item>
+        <item>azúcar moreno|azúcar</item>
+        <item>azúcar glas|azúcar</item>
+        <item>azúcar avainillado|azúcar</item>
+        <item>aceite de sésamo|aceite</item>
+        <item>aceite de trufa|aceite</item>
+        <item>vinagre balsámico|vinagre</item>
+        <item>harina de arroz|harina</item>
+        <item>harina de maíz|harina</item>
+        <item>agua de azahar|agua</item>
+        <item>pimienta de cayena|pimienta</item>
+    </string-array>
+
+    <!-- Starting points for the in-app browser, for households cooking in this language.
+         Plain links: tapping one opens that site's own recipe section, the user browses and
+         picks. Keep every entry answering 200, and prefer sites that publish schema.org
+         JSON-LD (that is what the import reads). Leave the array out and the English board
+         is used. -->
+    <string-array name="discover_sites">
+        <item>https://www.directoalpaladar.com/</item>
+        <item>https://bonviveur.com/es/</item>
+        <item>https://www.hogarmania.com/cocina/recetas/</item>
+        <item>https://www.pequerecetas.com/recetas/</item>
+        <item>https://www.javirecetas.com/</item>
+        <item>https://www.recetasdesbieta.com/</item>
+        <item>https://recetas.elperiodico.com/</item>
+        <item>https://cookpad.com/es</item>
+    </string-array>
+
+    <!-- How a site spells its own name: "domain label|display name". Only needed where simple
+         capitalization gets it wrong ("bbcgoodfood" would read "Bbcgoodfood"). Names the
+         browser tile *and* the cookbook an imported recipe is filed under - one list, so the
+         two can never drift apart. Merged across all languages. -->
+    <string-array name="discover_site_names">
+        <item>directoalpaladar|Directo al Paladar</item>
+        <item>pequerecetas|PequeRecetas</item>
+        <item>recetasdesbieta|Recetas de Sbieta</item>
+        <item>elperiodico|El Periódico Recetas</item>
+    </string-array>
+
+    <!-- Words that mark an hour / a minute in a typed or imported cooking time
+         ("1 hour 10 min"). Read only, never written: what a duration *reads* as is
+         rendered by the platform (android.icu MeasureFormat, device locale). Merged across all
+         languages, so a German recipe still parses on an English phone. -->
+    <string-array name="duration_hours">
+        <item>horas</item>
+        <item>hora</item>
+        <item>h</item>
+        <item>hs</item>
+    </string-array>
+    <string-array name="duration_minutes">
+        <item>minutos</item>
+        <item>minuto</item>
+        <item>min</item>
+    </string-array>
+</resources>

@@ -1,0 +1,734 @@
+<!--
+  ~  openCook
+  ~  Copyright (C) 2026 olie.xdev <olie.xdeveloper@googlemail.com>
+  ~
+  ~  This program is free software: you can redistribute it and/or modify
+  ~  it under the terms of the GNU General Public License as published by
+  ~  the Free Software Foundation, either version 3 of the License, or
+  ~  (at your option) any later version.
+  ~
+  ~  This program is distributed in the hope that it will be useful,
+  ~  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~  GNU General Public License for more details.
+  ~
+  ~  You should have received a copy of the GNU General Public License
+  ~  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<resources>
+    <!-- Default (English) resources; German lives in values-de/. app_name is generated per
+         build type in build.gradle.kts (resValue) so the second test identity (debug2) can
+         show a distinct launcher label. -->
+    <string name="back">رجوع</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_recipes">الوصفات</string>
+
+    <!-- Settings -->
+    <string name="settings_title">الإعدادات</string>
+    <string name="settings_server_url_label">عنوان الخادم</string>
+    <string name="settings_server_url_placeholder">http://192.168.1.10:8000</string>
+    <string name="settings_household_hint">تتشارك أسرتك الوصفات وقائمة التسوق والتخطيط بين جميع الأجهزة.</string>
+    <string name="settings_household_code_label">رمز الأسرة</string>
+    <string name="settings_household_code_copied">تم نسخ الرمز</string>
+    <string name="settings_sync_now">زامن الآن</string>
+    <string name="settings_save">حفظ</string>
+
+    <!-- Scan -->
+    <string name="scan_take_photo">التقاط صورة</string>
+    <string name="scan_pick_gallery">اختيار من المعرض</string>
+    <string name="scan_no_server_title">التعرّف على الصور يتطلب خادمًا</string>
+    <string name="scan_no_server">يعمل الذكاء الاصطناعي على خادم openCook الخاص بك. وبدونه يمكنك إضافة الوصفات يدويًا أو استيرادها من ملف.</string>
+    <string name="scan_tile_needs_server">يتطلب خادمًا</string>
+    <string name="scan_tile_later">يتم التعرّف لاحقًا</string>
+    <string name="scan_go_to_settings">الانتقال إلى الإعدادات</string>
+
+    <!-- Camera -->
+    <string name="camera_capture">التقاط</string>
+    <string name="camera_permission_rationale">يلزم الوصول إلى الكاميرا لالتقاط صورة. يمكنك أيضًا اختيار صورة من المعرض بدلًا من ذلك.</string>
+
+    <!-- Processing -->
+    <string name="processing_cancel">إلغاء</string>
+
+    <!-- Review -->
+    <string name="review_title">مراجعة الوصفة</string>
+    <string name="review_recipe_index">الوصفة %1$d من %2$d</string>
+    <string name="review_name">العنوان</string>
+    <string name="review_servings">عدد الحصص</string>
+    <string name="review_cookbook">كتاب الطبخ / المجموعة</string>
+    <string name="review_category">التصنيف</string>
+    <string name="review_prep_time">وقت التحضير</string>
+    <string name="review_cook_time">وقت الطهي</string>
+    <string name="review_ingredients">المكونات</string>
+    <string name="review_instructions">طريقة التحضير</string>
+    <string name="review_nutrition">القيم الغذائية</string>
+    <string name="review_notes">ملاحظات</string>
+    <string name="review_add_ingredient">إضافة مكوّن</string>
+    <string name="review_add_step">إضافة خطوة</string>
+    <string name="review_paste_hint_ingredient">مكوّن — أو الصق قائمة كاملة</string>
+    <string name="review_paste_hint_step">صِف الخطوة — أو الصق كل الخطوات</string>
+    <plurals name="review_pasted_ingredients">
+        <item quantity="zero">تقسيم إلى %1$d مكوّن</item>
+        <item quantity="one">تقسيم إلى %1$d مكوّن</item>
+        <item quantity="two">تقسيم إلى %1$d مكوّنين</item>
+        <item quantity="few">تقسيم إلى %1$d مكوّنات</item>
+        <item quantity="many">تقسيم إلى %1$d مكوّنًا</item>
+        <item quantity="other">تقسيم إلى %1$d مكوّن</item>
+    </plurals>
+    <plurals name="review_pasted_steps">
+        <item quantity="zero">تقسيم إلى %1$d خطوة</item>
+        <item quantity="one">تقسيم إلى %1$d خطوة</item>
+        <item quantity="two">تقسيم إلى %1$d خطوتين</item>
+        <item quantity="few">تقسيم إلى %1$d خطوات</item>
+        <item quantity="many">تقسيم إلى %1$d خطوةً</item>
+        <item quantity="other">تقسيم إلى %1$d خطوة</item>
+    </plurals>
+    <string name="review_save">حفظ</string>
+    <string name="review_image_take">التقاط صورة</string>
+    <string name="review_image_gallery">المعرض</string>
+    <string name="review_image_rotate">تدوير 90°</string>
+    <string name="review_image_crop">اقتصاص</string>
+    <string name="crop_apply">تطبيق</string>
+    <string name="crop_cancel">إلغاء</string>
+
+    <!-- Recipes -->
+    <string name="recipes_title">الوصفات</string>
+    <string name="recipes_title_count">الوصفات (%1$d)</string>
+    <string name="recipes_search_hint">ابحث في الوصفات…</string>
+    <string name="recipes_filter_all">الكل</string>
+    <string name="recipes_filter">تصفية</string>
+    <string name="recipes_filter_title">التصفية والترتيب</string>
+    <string name="recipes_filter_reset">إعادة ضبط</string>
+    <string name="recipes_sort">ترتيب</string>
+    <string name="recipes_sort_newest">الأحدث أولًا</string>
+    <string name="recipes_sort_name">الاسم (أ–ي)</string>
+    <string name="recipes_filter_liked">المفضلة فقط</string>
+    <string name="recipes_filter_cookable">يمكن طهيها الآن</string>
+    <string name="recipes_filter_remove">إزالة التصفية %1$s</string>
+    <string name="recipes_filter_status">الحالة</string>
+    <string name="recipes_filter_cooked_group">المطهيّة</string>
+    <string name="recipes_filter_cooked">طُهيت من قبل</string>
+    <string name="recipes_filter_never_cooked">لم تُطهَ أبدًا</string>
+    <string name="recipes_filter_stale">لم تُطهَ منذ فترة</string>
+    <string name="recipe_delete">حذف</string>
+    <string name="recipe_edit">تعديل</string>
+    <string name="recipe_like">أعجبني</string>
+    <string name="recipe_cooked_mark">تحديد كمطهيّة</string>
+    <string name="recipe_cooked_marked">طُهيت اليوم</string>
+    <string name="recipe_cooked_badge">مطهيّة</string>
+    <string name="recipe_last_cooked_prefix">آخر طهي</string>
+    <string name="recipe_cooked_today">اليوم</string>
+    <string name="recipe_cooked_yesterday">أمس</string>
+    <plurals name="recipe_cooked_days_ago">
+        <item quantity="zero">قبل %1$d يوم</item>
+        <item quantity="one">قبل %1$d يوم</item>
+        <item quantity="two">قبل يومين</item>
+        <item quantity="few">قبل %1$d أيام</item>
+        <item quantity="many">قبل %1$d يومًا</item>
+        <item quantity="other">قبل %1$d يوم</item>
+    </plurals>
+    <string name="recipe_cooked_week_ago">قبل أسبوع</string>
+    <plurals name="recipe_cooked_weeks_ago">
+        <item quantity="zero">قبل %1$d أسبوع</item>
+        <item quantity="one">قبل %1$d أسبوع</item>
+        <item quantity="two">قبل أسبوعين</item>
+        <item quantity="few">قبل %1$d أسابيع</item>
+        <item quantity="many">قبل %1$d أسبوعًا</item>
+        <item quantity="other">قبل %1$d أسبوع</item>
+    </plurals>
+    <string name="recipe_liked_label">♥ أعجبني</string>
+    <string name="recipe_cook_moved">نُقلت “%1$s” إلى %2$s</string>
+    <string name="recipe_cook_removed">أُزيلت “%1$s” من اليوم</string>
+    <plurals name="recipe_cooked_times">
+        <item quantity="zero">طُهيت %1$d مرة</item>
+        <item quantity="one">طُهيت %1$d مرة</item>
+        <item quantity="two">طُهيت مرتين</item>
+        <item quantity="few">طُهيت %1$d مرات</item>
+        <item quantity="many">طُهيت %1$d مرة</item>
+        <item quantity="other">طُهيت %1$d مرة</item>
+    </plurals>
+    <string name="recipe_cooked_last_short">آخر مرة %1$s</string>
+
+    <!-- Retrospective ("what we've cooked"), reached from the top of the plan list -->
+    <string name="retrospect_title">نظرة إلى الماضي</string>
+    <string name="retrospect_entry_title">ما طهيناه</string>
+    <plurals name="retrospect_entry_subtitle">
+        <item quantity="zero">%1$s: %2$d وجبة</item>
+        <item quantity="one">%1$s: %2$d وجبة</item>
+        <item quantity="two">%1$s: وجبتان</item>
+        <item quantity="few">%1$s: %2$d وجبات</item>
+        <item quantity="many">%1$s: %2$d وجبة</item>
+        <item quantity="other">%1$s: %2$d وجبة</item>
+    </plurals>
+    <plurals name="retrospect_month_meals">
+        <item quantity="zero">%1$d وجبة مطهيّة</item>
+        <item quantity="one">%1$d وجبة مطهيّة</item>
+        <item quantity="two">وجبتان مطهيّتان</item>
+        <item quantity="few">%1$d وجبات مطهيّة</item>
+        <item quantity="many">%1$d وجبة مطهيّة</item>
+        <item quantity="other">%1$d وجبة مطهيّة</item>
+    </plurals>
+    <string name="retrospect_empty_title">لا شيء لاستعراضه بعد</string>
+    <string name="retrospect_empty_message">عندما تحدد الوجبات كمطهيّة، تتجمع هنا.</string>
+
+    <!-- Barcode scanning -->
+    <string name="barcode_scan_cd">مسح الباركود</string>
+    <string name="barcode_hint">ضع الباركود داخل الإطار</string>
+    <string name="barcode_found">تم العثور على المنتج</string>
+    <string name="barcode_not_found">لم يتم العثور عليه — أدخل اسمًا</string>
+    <string name="barcode_name_label">اسم المنتج</string>
+    <string name="barcode_code_label">الباركود: %1$s</string>
+    <string name="barcode_add">إضافة</string>
+    <string name="barcode_rescan">مسح مرة أخرى</string>
+
+    <!-- Status strip (running scans) -->
+    <string name="status_queued">في الانتظار…</string>
+    <string name="stage_reading_text">جارٍ قراءة نص الوصفة…</string>
+    <string name="stage_detecting_photos">جارٍ اكتشاف صور الأطباق…</string>
+    <string name="status_processing_generic">جارٍ المعالجة…</string>
+    <string name="status_review_action">مراجعة</string>
+    <string name="status_dismiss">تجاهل</string>
+    <string name="status_cancel">إلغاء</string>
+    <string name="status_retry">إعادة المحاولة</string>
+    <string name="status_stage_with_queue">%1$s · %2$d في الانتظار</string>
+    <string name="status_queued_only">%1$d في الانتظار…</string>
+    <plurals name="status_failed">
+        <item quantity="zero">فشل %1$d من عمليات المسح</item>
+        <item quantity="one">فشل مسح واحد</item>
+        <item quantity="two">فشل مسحان</item>
+        <item quantity="few">فشل %1$d من عمليات المسح</item>
+        <item quantity="many">فشل %1$d من عمليات المسح</item>
+        <item quantity="other">فشل %1$d من عمليات المسح</item>
+    </plurals>
+    <string name="status_added_one">تمت إضافة “%1$s”</string>
+    <string name="status_added_many">“%1$s” + %2$d أخرى</string>
+
+    <!-- Shopping list -->
+    <string name="segment_shopping">قائمة التسوق</string>
+    <string name="segment_pantry">المخزن</string>
+    <string name="search">بحث</string>
+    <string name="search_close">إغلاق البحث</string>
+    <string name="search_clear">مسح الإدخال</string>
+    <string name="search_hint">ابحث…</string>
+    <string name="search_no_results">لا توجد نتائج</string>
+    <string name="shopping_add_hint">أضف عنصرًا…</string>
+    <string name="shopping_add">إضافة</string>
+    <string name="shopping_empty">قائمة التسوق فارغة. أضف عناصر أو أضف مكونات إحدى الوصفات.</string>
+    <string name="shopping_delete">إزالة</string>
+    <string name="shopping_all_bought_title">تم شراء كل شيء 🎉</string>
+    <string name="shopping_all_bought_action">نقل إلى المخزن</string>
+    <string name="shopping_add_from_recipe">إضافة إلى قائمة التسوق</string>
+    <string name="shopping_already_home">موجود لديك بالفعل (→ المخزن)</string>
+    <string name="shopping_moved_to_pantry">تم النقل إلى المخزن</string>
+    <string name="shopping_skipped_chip">%1$d في المخزن — تم تخطيه</string>
+    <string name="shopping_need_anyway">أحتاجه رغم ذلك</string>
+    <string name="shopping_needed_for">لـ: %1$s</string>
+    <string name="shopping_actions">الإجراءات</string>
+    <string name="swipe_to_pantry">المخزن</string>
+    <string name="swipe_to_shopping">قائمة التسوق</string>
+    <string name="shopping_nf_adapt">تحديد كمنجز</string>
+    <string name="shopping_adapted">تم التحديد كمنجز</string>
+    <string name="scan_manual">إنشاء يدويًا</string>
+    <string name="recipe_open_source">فتح الوصفة الأصلية</string>
+    <string name="recipe_add_to_plan">إضافة إلى خطة الأسبوع</string>
+    <string name="recipe_plan_sheet_title">اختر يومًا</string>
+    <string name="recipe_plan_added">تمت الإضافة ليوم %1$s</string>
+    <string name="recipe_plan_replace_title">اليوم مخطط له مسبقًا</string>
+    <string name="recipe_plan_replace_text">“%2$s” مخططة بالفعل ليوم %1$s. هل تريد استبدالها بهذه الوصفة؟</string>
+    <string name="recipe_plan_replace_confirm">استبدال</string>
+    <string name="recipe_plan_add_also">إضافة أيضًا</string>
+    <string name="recipe_timer_set">الخطوة %1$d: بدأ مؤقت جديد (%2$s)</string>
+    <string name="recipe_timer_own">ضبط مؤقت</string>
+    <string name="recipe_tags_less">أقل</string>
+    <string name="recipe_tags_more">+%1$d أخرى</string>
+    <string name="recipe_timer_label">الخطوة %1$d · %2$s</string>
+    <string name="recipe_timer_open_clock">فتح الساعة</string>
+    <string name="recipe_timer_no_app">لا يوجد تطبيق ساعة يدعم المؤقت</string>
+    <string name="recipe_plan_day_free">فارغ</string>
+    <string name="wizard_step_of">الخطوة %1$d من %2$d</string>
+    <string name="wizard_back">رجوع</string>
+    <string name="wizard_next">التالي</string>
+    <string name="wizard_step_basics">الصورة والأساسيات</string>
+    <string name="wizard_step_ingredients">المكونات</string>
+    <string name="wizard_step_steps">الخطوات</string>
+    <string name="wizard_step_details">اختياري</string>
+    <string name="wizard_step_summary">الملخص</string>
+    <string name="wizard_name_required">يرجى إدخال عنوان أولًا.</string>
+    <string name="wizard_no_ingredients">لا توجد مكونات بعد. اضغط على “إضافة مكوّن”.</string>
+    <string name="wizard_no_steps">لا توجد خطوات بعد. اضغط على “إضافة خطوة”.</string>
+    <string name="wizard_summary_servings">%1$s حصص</string>
+    <string name="wizard_summary_no_image">لم يتم اختيار صورة.</string>
+    <string name="wizard_ingredient_qty">الكمية</string>
+    <string name="wizard_ingredient_unit">الوحدة</string>
+    <string name="wizard_ingredient_name">المكوّن</string>
+    <string name="wizard_step_move_up">نقل لأعلى</string>
+    <string name="wizard_step_move_down">نقل لأسفل</string>
+    <string name="wizard_time_none">غير محدد</string>
+    <string name="wizard_time_minutes">%1$d د</string>
+    <string name="wizard_time_hour">%1$d س</string>
+    <string name="wizard_time_hour_minutes">%1$d س %2$d د</string>
+    <string name="wizard_nutrition_toggle">إضافة القيم الغذائية</string>
+    <string name="wizard_correction_suggest">هل تقصد “%1$s”؟</string>
+    <string name="wizard_correction_auto">تم التصحيح تلقائيًا</string>
+
+    <!-- Pantry -->
+    <string name="pantry_add_hint">أضف عنصرًا إلى المخزن…</string>
+    <string name="pantry_empty">لا توجد عناصر في المخزن بعد.</string>
+    <string name="pantry_basics">الأساسيات (متوفرة دائمًا)</string>
+    <string name="pantry_basics_show">إظهار الأساسيات</string>
+    <string name="pantry_basics_hide">إخفاء الأساسيات</string>
+    <string name="pantry_basics_empty">اسحب عنصرًا إلى هنا حتى لا يستهلكه الطبخ أبدًا</string>
+    <string name="pantry_moved_to_basics">%1$s ← الأساسيات</string>
+    <string name="pantry_moved_from_basics">%1$s ← المخزون العادي</string>
+    <string name="shopping_added">تمت الإضافة إلى قائمة التسوق</string>
+
+    <!-- Meal plan -->
+    <string name="mealplan_title">خطة الوجبات</string>
+    <string name="mealplan_to_shopping">إنشاء قائمة التسوق</string>
+    <string name="mealplan_pick_recipe">اختر وصفة</string>
+    <string name="mealplan_suggestion">اقتراح</string>
+    <string name="mealplan_swap_dish">تبديل الطبق</string>
+    <string name="mealplan_pick_clear_filter">أزل التصفية أعلاه للاختيار من جميع الوصفات.</string>
+    <string name="mealplan_no_recipes">لا توجد وصفات للتخطيط بعد.</string>
+    <string name="mealplan_generated">تمت إضافة المكونات إلى قائمة التسوق</string>
+    <string name="mealplan_day_not_planned">غير مخطط</string>
+    <string name="mealplan_day_yesterday">أمس</string>
+    <string name="mealplan_day_today">اليوم</string>
+    <string name="mealplan_day_tomorrow">غدًا</string>
+    <string name="mealplan_week_last">الأسبوع الماضي</string>
+    <string name="mealplan_week_current">هذا الأسبوع</string>
+    <string name="mealplan_week_next">الأسبوع القادم</string>
+    <string name="mealplan_week_after_next">الأسبوع الذي يليه</string>
+    <string name="mealplan_jump_today">اليوم</string>
+
+    <!-- Meal-planner reasons (why a dish was picked) -->
+    <string name="mealplan_reason_week_reuse">يستهلك %1$s</string>
+    <string name="mealplan_reason_pantry_reuse">من المخزن: %1$s</string>
+    <string name="mealplan_reason_liked">أعجبني</string>
+    <string name="mealplan_reason_quick_weekday">سريع (%1$s)</string>
+    <string name="mealplan_reason_big_batch_leftover">يكفي ليومين</string>
+    <string name="mealplan_reason_new_ingredients">ما زلت بحاجة إلى: %1$s</string>
+    <string name="mealplan_reason_recently_planned">خُطط له مؤخرًا (%1$s)</string>
+    <string name="mealplan_reason_recently_cooked">طُهي مؤخرًا (%1$s)</string>
+    <string name="mealplan_reason_same_category">مشابه لليوم المجاور (%1$s)</string>
+    <string name="mealplan_reason_monotony">متكرر بالفعل هذا الأسبوع: %1$s</string>
+    <string name="mealplan_reason_same_protein">نفس المكوّن الرئيسي في يوم آخر: %1$s</string>
+    <!-- Display labels for the meal-planner main-protein groups (keys are fixed in code). -->
+    <string name="protein_label_poultry">الدواجن</string>
+    <string name="protein_label_fish">السمك</string>
+    <string name="protein_label_mince">اللحم المفروم</string>
+    <string name="protein_label_pork">لحم الخنزير</string>
+    <string name="protein_label_beef">لحم البقر</string>
+    <string name="protein_label_lamb">لحم الضأن</string>
+    <string name="protein_label_plant">نباتي</string>
+    <string name="mealplan_reasons_title">لماذا هذا الطبق؟</string>
+    <string name="mealplan_reasons_why">لماذا؟</string>
+    <string name="mealplan_reasons_section_for">مع</string>
+    <string name="mealplan_reasons_section_against">ضد</string>
+    <string name="mealplan_reasons_none">أُضيف يدويًا — بلا تعليل.</string>
+
+    <!-- Settings: household size -->
+    <string name="settings_household_size_hint">عدد الأشخاص المراد التخطيط لهم. عند الكميات الكبيرة يقترح المخطط بقايا الطعام لليوم التالي.</string>
+    <string name="settings_household_size_label">الأشخاص</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">مرحبًا بك في openCook</string>
+    <string name="onboarding_subtitle">اجمع الوصفات وخطط لها واطهها – دون اتصال ودون حساب.</string>
+    <string name="onboarding_mode_step_title">كيف تريد استخدام openCook؟</string>
+    <string name="onboarding_mode_local_title">على هذا الهاتف فقط</string>
+    <string name="onboarding_mode_local_subtitle">تبقى الوصفات والخطط وقائمة التسوق دون اتصال على هذا الجهاز.</string>
+    <string name="onboarding_mode_server_title">الاتصال بخادم منزلي</string>
+    <string name="onboarding_mode_server_subtitle">افتح ميزتي مسح الصور ومزامنة العائلة (يلزم خادم الأسرة).</string>
+    <string name="onboarding_mode_serverless_title">أسرة بدون خادم</string>
+    <string name="onboarding_mode_serverless_subtitle">تتزامن الهواتف مع بعضها مباشرة عبر شبكة Wi-Fi لديك. يمكن إضافة خادم لاحقًا.</string>
+    <string name="onboarding_peer_subtitle">هاتف على شبكة Wi-Fi هذه</string>
+    <string name="onboarding_server_step_title">اختر خادمًا</string>
+    <string name="onboarding_searching">جارٍ البحث في الشبكة…</string>
+    <string name="onboarding_peers_step_title">انضم عبر هاتف يملك الأسرة بالفعل — أو ابدأ أسرة جديدة</string>
+    <string name="onboarding_peers_searching">جارٍ البحث عن هواتف على شبكة Wi-Fi هذه… يجب أن يكون openCook مفتوحًا على الهاتف الآخر.</string>
+    <string name="onboarding_peers_create_subtitle">ابدأ من هذا الهاتف — وينضم الآخرون لاحقًا.</string>
+    <string name="onboarding_manual_toggle">إدخال الخادم يدويًا</string>
+    <string name="onboarding_manual_address_label">عنوان الخادم</string>
+    <string name="onboarding_manual_address_placeholder">192.168.0.10:8000</string>
+    <string name="onboarding_connect">اتصال</string>
+    <string name="onboarding_household_step_title">اختر أسرة</string>
+    <string name="onboarding_no_households">لا توجد أسرة بعد — أنشئ واحدة.</string>
+    <string name="onboarding_create_household">إنشاء أسرة جديدة</string>
+    <string name="onboarding_persons">%1$d أشخاص</string>
+    <string name="onboarding_protected">محمي برمز PIN</string>
+    <string name="onboarding_pin_prompt_title">رمز PIN لـ“%1$s”</string>
+    <string name="onboarding_pin_label">رمز PIN</string>
+    <string name="onboarding_join">انضمام</string>
+    <string name="onboarding_cancel">إلغاء</string>
+    <string name="onboarding_create_step_title">إنشاء أسرة</string>
+    <string name="onboarding_name_label">اسم الأسرة</string>
+    <string name="onboarding_pin_optional_label">رمز PIN (اختياري)</string>
+    <string name="onboarding_create">إنشاء</string>
+    <string name="onboarding_back">رجوع</string>
+
+    <!-- Settings: household membership -->
+    <string name="settings_household_leave">مغادرة الأسرة / تبديلها</string>
+    <string name="settings_connect_server">الاتصال بخادم</string>
+    <string name="settings_connect_server_hint">افتح ميزتي مسح الصور ومزامنة العائلة — مع الاحتفاظ ببياناتك.</string>
+    <string name="settings_appearance_section">المظهر</string>
+    <string name="settings_dynamic_color">Material You (ألوان النظام)</string>
+
+    <!-- Settings: grouped sections + admin -->
+    <string name="settings_household_section_label">الأسرة</string>
+    <string name="settings_server_label">الخادم والاتصال</string>
+    <string name="settings_p2p_title">المزامنة من هاتف إلى هاتف</string>
+    <string name="settings_p2p_subtitle">زامن مباشرة عبر Wi-Fi، حتى مع إغلاق التطبيق</string>
+    <string name="standby_channel_name">جاهزية مزامنة العائلة</string>
+    <string name="standby_notification_title">متاح لعائلتك</string>
+    <string name="standby_notification_text">يمكن لأجهزة الأسرة المزامنة مع هذا الهاتف (عبر Wi-Fi فقط).</string>
+    <string name="settings_attach_server">إضافة خادم</string>
+    <string name="settings_attach_server_hint">اختياري: مسح الصور والنسخ الاحتياطية والاستيراد من المتصفح تتطلب خادمًا منزليًا.</string>
+    <string name="settings_attach_server_action">إضافة خادم</string>
+
+    <!-- Admin area (server backup/restore) -->
+
+    <!-- Recipe JSON import (button on the add-recipe screen) -->
+    <string name="import_from_file">استيراد من ملف</string>
+    <string name="import_running">جارٍ استيراد الوصفات…</string>
+    <string name="import_done">تم استيراد %1$d، وتخطي %2$d</string>
+    <string name="import_error">فشل الاستيراد: %1$s</string>
+    <string name="import_read_failed">تعذرت قراءة الملف</string>
+    <string name="import_generic_failed">فشل الاستيراد</string>
+
+    <!-- Browser-inbox import (recipes pushed by the extension, drained during sync) -->
+    <plurals name="import_browser_imported">
+        <item quantity="zero">تم استيراد %1$d وصفة من المتصفح</item>
+        <item quantity="one">تم استيراد وصفة واحدة من المتصفح</item>
+        <item quantity="two">تم استيراد وصفتين من المتصفح</item>
+        <item quantity="few">تم استيراد %1$d وصفات من المتصفح</item>
+        <item quantity="many">تم استيراد %1$d وصفة من المتصفح</item>
+        <item quantity="other">تم استيراد %1$d وصفة من المتصفح</item>
+    </plurals>
+    <plurals name="import_browser_skipped">
+        <item quantity="zero">تم تخطي %1$d تكرار</item>
+        <item quantity="one">تم تخطي تكرار واحد</item>
+        <item quantity="two">تم تخطي تكرارين</item>
+        <item quantity="few">تم تخطي %1$d تكرارات</item>
+        <item quantity="many">تم تخطي %1$d تكرارًا</item>
+        <item quantity="other">تم تخطي %1$d تكرار</item>
+    </plurals>
+
+    <!-- Share import (Share → openCook): a recipe page URL shared from a browser -->
+    <string name="import_share_saved">تم استيراد الوصفة: %1$s</string>
+    <string name="import_share_view">عرض</string>
+    <string name="import_share_duplicate">“%1$s” موجودة بالفعل</string>
+    <string name="import_share_no_recipe">لم يتم العثور على وصفة في هذه الصفحة</string>
+    <string name="import_share_error_load">تعذر تحميل الصفحة.</string>
+    <string name="import_share_fallback_name">وصفة</string>
+
+    <string name="scan_discover">اكتشف عبر الإنترنت</string>
+    <string name="discover_title">اكتشاف الوصفات</string>
+    <string name="discover_add">إضافة</string>
+    <string name="discover_remove">إزالة %1$s</string>
+    <string name="discover_address_hint">chefkoch.de/rezepte</string>
+    <string name="discover_removed">تمت إزالة “%1$s”</string>
+    <string name="discover_clear">حذف ملفات تعريف الارتباط لـ%1$s</string>
+    <string name="discover_clear_confirm_title">حذف ملفات تعريف الارتباط لـ%1$s؟</string>
+    <string name="discover_clear_confirm_text">سينسى %1$s هذا الهاتف: تُزال ملفات تعريف الارتباط وما خزّنه الموقع في المتصفح، بما في ذلك لافتة ملفات تعريف الارتباط التي قبلتها هناك — وسيسألك مجددًا عند زيارتك التالية. تبقى الوصفات التي استوردتها من %1$s في مجموعتك.</string>
+    <string name="discover_cleared">تم حذف ملفات تعريف الارتباط لـ%1$s</string>
+    <string name="discover_import">استيراد هذه الوصفة</string>
+    <string name="discover_import_short">استيراد</string>
+    <string name="discover_close">إغلاق الموقع</string>
+    <string name="discover_disclaimer">عرض متصفح مدمج: مواقع تعود لأطراف أخرى، بإعلاناتها وملفات تعريف الارتباط الخاصة بها. لا ترتبط openCook بها، وتحفظ فقط الوصفة التي تفتحها، لاستخدامك الشخصي.</string>
+    <string name="discover_no_webview_title">عرض المتصفح غير متاح</string>
+    <string name="discover_no_webview_body">لا يحتوي هذا الجهاز على Android System WebView، أو أنه معطّل — لذا لا يمكن عرض الصفحات هنا. ما زال بإمكانك إضافة الوصفات بالصورة أو من ملف أو من رابط مشارَك أو يدويًا.</string>
+
+    <!-- Home (Today) -->
+
+    <!-- Recipes list -->
+    <string name="recipes_add">إضافة وصفة</string>
+    <string name="recipes_empty_title">لا توجد وصفات بعد</string>
+    <string name="recipes_empty_msg">أضف وصفة أو أنشئ واحدة.</string>
+    <string name="recipes_search_empty_title">لم يتم العثور على شيء</string>
+    <string name="recipes_search_empty_msg">جرّب كلمة بحث مختلفة.</string>
+    <string name="review_remove">إزالة</string>
+
+    <!-- Confirmations -->
+    <string name="action_delete">حذف</string>
+    <string name="recipe_delete_confirm_title">حذف الوصفة؟</string>
+    <string name="recipe_delete_confirm_text">سيتم حذف هذه الوصفة نهائيًا.</string>
+    <!-- Multi-select in the recipe list (long-press a card) -->
+    <string name="recipes_selected_of">%1$d من %2$d</string>
+    <string name="recipes_select_all">تحديد الكل</string>
+    <string name="recipes_selection_cancel">إلغاء التحديد</string>
+    <string name="recipes_select_none">إلغاء تحديد الكل</string>
+    <plurals name="recipes_bulk_edit_title">
+        <item quantity="zero">تعديل %1$d وصفة</item>
+        <item quantity="one">تعديل %1$d وصفة</item>
+        <item quantity="two">تعديل وصفتين</item>
+        <item quantity="few">تعديل %1$d وصفات</item>
+        <item quantity="many">تعديل %1$d وصفة</item>
+        <item quantity="other">تعديل %1$d وصفة</item>
+    </plurals>
+    <string name="recipes_bulk_apply">تطبيق</string>
+    <string name="recipes_bulk_mixed">متنوعة</string>
+    <string name="recipes_bulk_no_cookbook">بدون كتاب طبخ</string>
+    <string name="recipes_bulk_mealtypes_hint">اضغط على وجبة لمنحها لجميع الوصفات، أو لعدم منحها لأي منها.</string>
+    <plurals name="recipes_bulk_done">
+        <item quantity="zero">تم تحديث %1$d وصفة</item>
+        <item quantity="one">تم تحديث %1$d وصفة</item>
+        <item quantity="two">تم تحديث وصفتين</item>
+        <item quantity="few">تم تحديث %1$d وصفات</item>
+        <item quantity="many">تم تحديث %1$d وصفة</item>
+        <item quantity="other">تم تحديث %1$d وصفة</item>
+    </plurals>
+    <plurals name="recipes_delete_selected_title">
+        <item quantity="zero">حذف %1$d وصفة؟</item>
+        <item quantity="one">حذف %1$d وصفة؟</item>
+        <item quantity="two">حذف وصفتين؟</item>
+        <item quantity="few">حذف %1$d وصفات؟</item>
+        <item quantity="many">حذف %1$d وصفة؟</item>
+        <item quantity="other">حذف %1$d وصفة؟</item>
+    </plurals>
+    <plurals name="recipes_delete_selected_text">
+        <item quantity="zero">سيتم حذف هذه الوصفات نهائيًا.</item>
+        <item quantity="one">سيتم حذف هذه الوصفة نهائيًا.</item>
+        <item quantity="two">سيتم حذف هاتين الوصفتين نهائيًا.</item>
+        <item quantity="few">سيتم حذف هذه الوصفات نهائيًا.</item>
+        <item quantity="many">سيتم حذف هذه الوصفات نهائيًا.</item>
+        <item quantity="other">سيتم حذف هذه الوصفات نهائيًا.</item>
+    </plurals>
+    <string name="settings_leave_confirm_title">مغادرة الأسرة؟</string>
+    <string name="settings_leave_confirm_text">سيغادر هذا الجهاز الأسرة ويعود إلى الإعداد الأولي. تبقى البيانات المشتركة على الخادم.</string>
+    <string name="undo">تراجع</string>
+    <string name="deleted">تم الحذف</string>
+
+    <!-- Sync status (shared top bar) -->
+    <string name="sync_status_ok">كل شيء متزامن</string>
+    <string name="sync_status_ok_peer">كل شيء متزامن (عبر %1$s)</string>
+    <string name="sync_status_not_configured">لا يوجد خادم – اضغط للإعدادات</string>
+    <string name="sync_status_syncing">جارٍ المزامنة…</string>
+    <string name="sync_status_failed">غير متصل – اضغط للمزامنة</string>
+    <string name="sync_status_off_home_network">لست على شبكتك المنزلية – تم إيقاف المزامنة مؤقتًا</string>
+    <string name="sync_status_household_missing">لم يتم العثور على الأسرة على الخادم – ربما أُعيد إعداده. أعد الانضمام من الإعدادات.</string>
+    <string name="sync_error_offline">الخادم غير متاح – ستتم إعادة المحاولة تلقائيًا عند توفره.</string>
+    <string name="sync_error_off_home_network">تعمل المزامنة فقط على شبكة Wi-Fi المنزلية (أو عبر VPN) – وتستأنف تلقائيًا بمجرد عودتك.</string>
+    <string name="sync_status_last_success">كل شيء متزامن – آخر تبادل %1$s</string>
+    <string name="sync_progress_recipes">مزامنة الوصفات … %1$d</string>
+    <string name="sync_progress_images">تحميل الصور … %1$d / %2$d</string>
+    <string name="sync_progress_percent">%1$d %%</string>
+
+    <!-- Notifications -->
+    <string name="notif_channel_jobs_name">التعرّف على الوصفات</string>
+    <string name="notif_channel_jobs_desc">ينبّهك عند التعرّف على وصفة ممسوحة.</string>
+    <string name="notif_recipe_ready_title">تم التعرّف على الوصفة</string>
+    <string name="notif_recipe_ready_body">اضغط لمراجعة الوصفة التي تم التعرّف عليها.</string>
+
+    <!-- Top-level navigation tabs -->
+    <string name="nav_plan">الخطة</string>
+    <string name="nav_shopping_short">التسوق</string>
+    <string name="nav_more">المزيد</string>
+
+    <!-- Nutrition labels -->
+    <string name="nutrition_protein">البروتين</string>
+    <string name="nutrition_fat">الدهون</string>
+    <string name="nutrition_carbs">الكربوهيدرات</string>
+    <string name="nutrition_calories_value">السعرات: %1$s</string>
+    <string name="nutrition_protein_value">البروتين: %1$s</string>
+    <string name="nutrition_fat_value">الدهون: %1$s</string>
+    <string name="nutrition_carbs_value">الكربوهيدرات: %1$s</string>
+
+    <!-- Recipe meta line (servings · prep · cook) -->
+    <string name="recipe_meta_prep">التحضير %1$s</string>
+    <string name="recipe_meta_cook">الطهي %1$s</string>
+
+    <!-- Single-recipe export (detail screen share sheet) -->
+    <string name="recipe_export">تصدير</string>
+    <string name="recipe_export_title">تصدير الوصفة</string>
+    <string name="recipe_export_markdown_title">Markdown (.md)</string>
+    <string name="recipe_export_markdown_desc">ملف نصي مقروء مع صورة مضمّنة — لتطبيقات الملاحظات مثل Obsidian.</string>
+    <string name="recipe_export_json_title">ملف الوصفة (.json)</string>
+    <string name="recipe_export_json_desc">صيغة schema.org — يمكن قراءتها بواسطة openCook وتطبيقات الوصفات الأخرى.</string>
+    <string name="recipe_export_done">تم تصدير الوصفة.</string>
+    <string name="recipe_export_failed">فشل التصدير.</string>
+    <!-- Labels inside the exported Markdown document -->
+    <string name="recipe_export_md_servings">عدد الحصص</string>
+    <string name="recipe_export_md_category">التصنيف</string>
+    <string name="recipe_export_md_prep">التحضير</string>
+    <string name="recipe_export_md_cook">الطهي</string>
+    <string name="recipe_export_md_total">الإجمالي</string>
+    <string name="recipe_export_md_ingredients_for">المكونات (لـ%1$s)</string>
+    <string name="recipe_export_md_nutrient">العنصر الغذائي</string>
+    <string name="recipe_export_md_value">القيمة</string>
+    <string name="recipe_export_md_calories">السعرات الحرارية</string>
+    <string name="recipe_export_md_fiber">الألياف</string>
+    <string name="recipe_export_md_sugar">السكر</string>
+    <string name="recipe_export_md_from_cookbook">من “%1$s”</string>
+    <string name="recipe_export_md_footer">تم التصدير من openCook في %1$s</string>
+
+    <!-- Drag-to-recategorize (shopping list + pantry) -->
+    <string name="shopping_category_learned">%1$s → %2$s — تم تسجيل ذلك للأسرة</string>
+
+    <!-- Grocery aisles (shopping list grouping) -->
+    <string name="grocery_cat_produce">الخضار والفواكه</string>
+    <string name="grocery_cat_meat_fish">اللحوم والأسماك</string>
+    <string name="grocery_cat_dairy">الألبان والبيض</string>
+    <string name="grocery_cat_bakery">المخبوزات</string>
+    <string name="grocery_cat_frozen">المجمّدات</string>
+    <string name="grocery_cat_drinks">المشروبات</string>
+    <string name="grocery_cat_spices">التوابل والزيوت والصلصات</string>
+    <string name="grocery_cat_pantry">المؤن والمواد الجافة</string>
+    <string name="grocery_cat_other">أخرى</string>
+
+    <!-- Onboarding validation / connection errors -->
+    <string name="onboarding_error_invalid_address">عنوان غير صالح</string>
+    <string name="onboarding_error_name_required">يرجى إدخال اسم</string>
+    <string name="onboarding_error_pin_wrong">رمز PIN خاطئ.</string>
+    <string name="onboarding_error_no_server">لم يتم اختيار خادم.</string>
+    <string name="onboarding_error_unreachable">الخادم غير متاح.</string>
+
+    <!-- Settings sync messages -->
+    <string name="settings_msg_size_update_failed">تعذر تحديث الخادم — ستتم إعادة المحاولة عند المزامنة التالية.</string>
+    <string name="settings_msg_synced">تمت المزامنة (استُلم %1$d)</string>
+    <string name="settings_msg_server_attached">تمت إضافة الخادم — تجري الآن مزامنة هذه الأسرة معه</string>
+    <string name="settings_msg_attach_failed">تعذر الوصول إلى ذلك الخادم</string>
+    <string name="settings_msg_no_household">لا توجد أسرة — انضم إلى واحدة أولًا.</string>
+    <string name="settings_msg_household_missing">لم يتم العثور على الأسرة على الخادم — ربما أُعيد إعداده. يرجى إعادة الانضمام.</string>
+    <string name="settings_msg_sync_failed">فشلت المزامنة: %1$s</string>
+    <string name="settings_msg_sync_failed_generic">فشلت المزامنة</string>
+
+    <!-- Admin error messages -->
+
+    <!-- Review save: duplicate-name feedback -->
+    <string name="review_conflict_title">“%1$s” موجودة بالفعل</string>
+    <string name="review_conflict_body_scan">توجد وصفة أخرى من عمليات المسح المفتوحة لديك بهذا الاسم — على الأرجح صوّرت الصفحة نفسها مرتين.</string>
+    <string name="review_conflict_body">توجد وصفة أخرى بهذا الاسم بالفعل.</string>
+    <string name="review_conflict_replace">استبدال الموجودة</string>
+    <string name="review_conflict_discard">تجاهل هذه المسودة</string>
+    <string name="review_conflict_rename">إعادة تسمية</string>
+    <string name="review_conflict_replaced">تم دمج “%1$s” في الوصفة الموجودة.</string>
+    <string name="review_conflict_discarded">تم تجاهل المسودة.</string>
+
+    <!-- Recipe content language (AI extraction, categories, grocery keywords) -->
+    <string name="settings_content_language">لغة الوصفات</string>
+    <string name="settings_content_language_hint">لغة مسح الصور والتصنيفات وتجميع قائمة التسوق.</string>
+    <string name="settings_content_language_system">اتباع النظام</string>
+    <string name="lang_german">Deutsch</string>
+    <string name="lang_english">English</string>
+    <string name="lang_french">Français</string>
+    <string name="lang_spanish">Español</string>
+    <string name="lang_arabic">العربية</string>
+
+    <!-- Recipe categories (stored as keys, shown localized) -->
+    <string name="cat_pasta">المعكرونة</string>
+    <string name="cat_meat">اللحوم</string>
+    <string name="cat_fish">الأسماك</string>
+    <string name="cat_soup">الشوربات</string>
+    <string name="cat_vegetarian">نباتي</string>
+    <string name="cat_salad">السلطات</string>
+    <string name="cat_dessert">الحلويات</string>
+    <string name="cat_other">أخرى</string>
+
+    <!-- Tag editor (details step) -->
+    <string name="review_tags">الوسوم</string>
+    <string name="review_tags_add_hint">أضف وسمًا (الفاصلة تفصل بين عدة وسوم)</string>
+    <string name="review_tags_add">إضافة وسم</string>
+    <string name="review_tag_remove">إزالة الوسم %1$s</string>
+
+    <!-- Meal types ("suitable for", stored as keys, shown localized) -->
+    <string name="recipe_mealtypes_label">مناسب لـ</string>
+    <string name="mealtype_breakfast">الفطور</string>
+    <string name="mealtype_lunch">الغداء</string>
+    <string name="mealtype_snack">وجبة خفيفة</string>
+    <string name="mealtype_dinner">العشاء</string>
+    <!-- Short forms for the meal-plan slot column (44dp) — the long labels don't fit there. -->
+    <string name="mealtype_short_breakfast">فطور</string>
+    <string name="mealtype_short_lunch">غداء</string>
+    <string name="mealtype_short_snack">خفيفة</string>
+    <string name="mealtype_short_dinner">عشاء</string>
+    <!-- Household setting: which meals are planned at all -->
+    <string name="household_planned_meals">الوجبات المخطط لها</string>
+    <string name="household_planned_meals_hint">يجب أن تبقى وجبة واحدة على الأقل مفعّلة.</string>
+    <string name="household_multi_dish">عدة أطباق في كل وجبة</string>
+    <!-- Week planner: slots -->
+    <string name="mealplan_slot_add">تخطيط</string>
+    <string name="shopping_already_on_list">موجود بالفعل في قائمة التسوق — لم تتم إضافة شيء</string>
+    <string name="mealplan_add_missing">إضافة العناصر الناقصة إلى قائمة التسوق</string>
+    <string name="mealplan_slot_no_recipes">لا توجد وصفات بعد (%1$s)</string>
+
+    <!-- Generic -->
+    <string name="action_ok">حسنًا</string>
+
+    <!-- Ingredient availability badge -->
+    <string name="availability_ready">جاهزة</string>
+    <string name="availability_ready_desc">جميع المكونات متوفرة</string>
+    <string name="availability_missing_desc">ينقص %1$d مكونات</string>
+    <string name="availability_missing_title">مكونات ناقصة</string>
+
+    <!-- Meal-plan recipe search -->
+    <string name="mealplan_search_empty_title">لم يتم العثور على شيء</string>
+    <string name="mealplan_search_empty_message">جرّب كلمة بحث مختلفة.</string>
+
+    <!-- Backup & restore (local, on-device) -->
+    <string name="settings_backup">النسخ الاحتياطي والاستعادة</string>
+    <string name="settings_backup_subtitle">احفظ وصفاتك في ملف</string>
+    <string name="settings_backup_last">آخر نسخة احتياطية: %1$s</string>
+    <string name="backup_title">النسخ الاحتياطي والاستعادة</string>
+    <string name="backup_intro">تحتوي النسخة الاحتياطية على وصفاتك وصورك وقائمة التسوق والمخزن وخطة الوجبات في ملف ZIP قابل للقراءة. ولا تتضمن رمز الأسرة ولا رمز PIN، لذا يمكنك حفظها في أي مكان واستعادتها في أي أسرة.</string>
+    <string name="backup_create">إنشاء نسخة احتياطية</string>
+    <string name="backup_create_hint">اكتب ملف ZIP في موقع تختاره</string>
+    <string name="backup_restore">استعادة نسخة احتياطية</string>
+    <string name="backup_restore_hint">أعد إضافة محتويات ملف نسخة احتياطية</string>
+    <string name="backup_restore_action">استعادة</string>
+    <string name="backup_restore_confirm_title">استعادة هذه النسخة الاحتياطية؟</string>
+    <string name="backup_restore_confirm_summary">نسخة احتياطية من %1$s\n%2$d وصفات · %3$d صور</string>
+    <string name="backup_restore_confirm_household">من الأسرة: %1$s</string>
+    <string name="backup_restore_confirm_hint">لن يُحذف شيء. تتم إعادة إضافة العناصر الناقصة، ويبقى كل ما أنشأته بعد النسخة الاحتياطية.</string>
+    <string name="backup_export_done">تم إنشاء النسخة الاحتياطية: %1$d وصفات، %2$d صور.</string>
+    <string name="backup_restore_done">تمت الاستعادة: %1$d وصفات، %2$d صور.</string>
+    <string name="backup_not_readable_title">ليست نسخة احتياطية</string>
+    <string name="backup_not_readable_text">هذا الملف ليس نسخة احتياطية من openCook، أو أنه تالف.</string>
+    <string name="backup_error_too_new">كُتبت هذه النسخة الاحتياطية بإصدار أحدث من openCook. يرجى تحديث التطبيق أولًا.</string>
+    <string name="backup_error_unsafe">يبدو هذا الملف غير آمن ولم يتم فتحه.</string>
+    <string name="backup_error_generic">فشل: %1$s</string>
+    <string name="backup_ok">حسنًا</string>
+    <string name="backup_phase_recipes">جارٍ حفظ الوصفات…</string>
+    <string name="backup_phase_images">جارٍ حفظ الصور…</string>
+    <string name="backup_phase_lists">جارٍ حفظ القوائم…</string>
+    <string name="backup_phase_restore_images">جارٍ استعادة الصور…</string>
+    <string name="backup_phase_restore_recipes">جارٍ استعادة الوصفات…</string>
+    <string name="backup_auto_section">النسخ الاحتياطي التلقائي</string>
+    <string name="backup_auto_title">نسخ احتياطي تلقائي</string>
+    <string name="backup_auto_hint">يوميًا أثناء الشحن، في مجلد تختاره</string>
+    <string name="backup_auto_folder_unknown">المجلد المحدد</string>
+    <string name="backup_auto_folder_hint">يحتفظ بأحدث %1$d نسخ احتياطية</string>
+    <string name="backup_auto_last_error">فشلت آخر نسخة احتياطية تلقائية: %1$s</string>
+    <!-- Settings hub & sub-pages -->
+    <string name="settings_hub_household_summary">%1$s · %2$d أشخاص · %3$s</string>
+    <string name="settings_hub_household_local_only">هذا الجهاز فقط — اربط خادمًا أو هواتف</string>
+    <string name="settings_hub_appearance_summary">%1$s · %2$s</string>
+    <string name="settings_hub_about_summary">الإصدار %1$s · GPLv3</string>
+    <string name="settings_hub_sync_server_and_peers">الخادم والهواتف على Wi-Fi</string>
+    <string name="settings_hub_sync_server_only">عبر خادمك</string>
+    <string name="settings_hub_sync_peers_only">من هاتف إلى هاتف عبر Wi-Fi</string>
+    <string name="settings_hub_sync_off">لا مزامنة — هذا الجهاز فقط</string>
+    <string name="settings_sync_section">المزامنة</string>
+    <string name="settings_sync_intro">الوجهات التي تنتقل إليها وصفات هذا الهاتف وقوائمه وخطته. يعمل الخادم والمزامنة من هاتف إلى هاتف معًا — ويُستخدم المتاح منهما.</string>
+    <string name="settings_household_leave_hint">يزيل جميع بيانات الأسرة من هذا الجهاز</string>
+    <string name="settings_dynamic_color_hint">استخدم ألوان خلفية الشاشة</string>
+    <string name="settings_dynamic_color_on">Material You</string>
+    <string name="settings_dynamic_color_off">ألوان openCook</string>
+    <string name="settings_font_size">حجم النص</string>
+    <string name="settings_font_size_small">صغير</string>
+    <string name="settings_font_size_default">افتراضي</string>
+    <string name="settings_font_size_large">كبير</string>
+    <string name="settings_font_size_larger">أكبر</string>
+    <string name="settings_font_size_largest">الأكبر</string>
+    <string name="settings_about">حول openCook</string>
+    <string name="about_intro">openCook برنامج حر. يعمل دون حساب ودون سحابة ودون تتبع — تبقى وصفاتك على أجهزتك.</string>
+    <string name="about_version">الإصدار</string>
+    <string name="about_license">الترخيص</string>
+    <string name="about_license_subtitle">GNU General Public License v3.0</string>
+    <string name="about_source">الشيفرة المصدرية</string>
+    <string name="about_source_subtitle">github.com/oliexdev/openCook</string>
+    <string name="about_privacy">الخصوصية</string>
+    <string name="about_privacy_subtitle">لا حساب ولا سحابة ولا تتبع. تبقى المزامنة ضمن شبكتك الخاصة.</string>
+    <string name="about_support">ادعم المشروع</string>
+    <string name="about_support_subtitle">كن راعيًا على GitHub</string>
+</resources>

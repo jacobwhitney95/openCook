@@ -143,6 +143,7 @@ data class PantryItemBackup(
     val name: String,
     val createdAt: Long = 0,
     val updatedAt: Long = 0,
+    val basic: Boolean? = null,
 )
 
 @Serializable

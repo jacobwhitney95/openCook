@@ -21,14 +21,25 @@ package com.food.opencook.data.localization
 import android.content.Context
 import android.content.res.Configuration
 import android.content.res.Resources
+import android.icu.text.MeasureFormat
+import android.icu.util.Measure
+import android.icu.util.MeasureUnit
 import com.food.opencook.R
 import com.food.opencook.data.recipeimport.IngredientLineParser
+import com.food.opencook.data.recipeimport.SourceCookbook
 import com.food.opencook.data.settings.ContentLanguages
 import com.food.opencook.data.settings.SettingsRepository
+import com.food.opencook.ui.discover.DiscoverSites
+import com.food.opencook.util.DurationFormat
 import com.food.opencook.util.GroceryCategories
 import com.food.opencook.util.GroceryCategory
+import com.food.opencook.util.IngredientLexicon
+import com.food.opencook.util.IngredientMatch
 import com.food.opencook.util.IngredientStaples
+import com.food.opencook.util.MealTypes
 import com.food.opencook.util.ProteinGroups
+import com.food.opencook.util.RecipeCategories
+import com.food.opencook.util.TextFold
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Locale
 import javax.inject.Inject
@@ -46,6 +57,38 @@ class LocalizedLists @Inject constructor(
     private val settings: SettingsRepository,
 ) {
 
+    /**
+     * The lists that do not depend on which language is *active*: the browser's starting points
+     * (a map keyed by language), how a site spells its name, and the hour/minute words a typed
+     * duration is read back from. Synchronous and called once from `Application.onCreate`, so
+     * these are in place before anything can import or render — unlike [reload], which has to
+     * wait for the household's content-language setting to arrive.
+     */
+    fun loadStatic() {
+        DiscoverSites.setBoards(
+            ContentLanguages.CODES.associateWith {
+                resourcesFor(it).getStringArray(R.array.discover_sites).toList()
+            },
+        )
+        SourceCookbook.setNames(pairMap(R.array.discover_site_names))
+        DurationFormat.setUnits(
+            hourWords = unionLower(R.array.duration_hours),
+            minuteWords = unionLower(R.array.duration_minutes),
+        )
+        // Writing a duration out is the platform's job, not a translation: ICU knows how every
+        // language abbreviates an hour, so "1 Std. 10 Min." / "1 hr 10 min" / "1 h 10 min" come
+        // out right in languages openCook itself does not ship. Device locale, like every other
+        // label the reader sees (see DateLabels, which leaves date order to the same idea).
+        val measures = MeasureFormat.getInstance(Locale.getDefault(), MeasureFormat.FormatWidth.SHORT)
+        DurationFormat.setRenderer { hours, minutes ->
+            val parts = buildList {
+                if (hours > 0) add(Measure(hours, MeasureUnit.HOUR))
+                if (minutes > 0) add(Measure(minutes, MeasureUnit.MINUTE))
+            }
+            measures.formatMeasures(*parts.toTypedArray())
+        }
+    }
+
     /** Reload for the current effective content language. Safe to call repeatedly. */
     suspend fun reload() {
         val lang = settings.effectiveContentLanguage(settings.contentLanguageOnce())
@@ -61,36 +104,95 @@ class LocalizedLists @Inject constructor(
         // and "salt", "Hähnchen" and "chicken", "EL" and "tbsp" are recognised regardless of locale.
         GroceryCategories.setRules(
             listOf(
-                GroceryCategory.FROZEN to unionLower(R.array.grocery_kw_frozen),
-                GroceryCategory.MEAT_FISH to unionLower(R.array.grocery_kw_meat_fish),
-                GroceryCategory.PRODUCE to unionLower(R.array.grocery_kw_produce),
-                GroceryCategory.BAKERY to unionLower(R.array.grocery_kw_bakery),
-                GroceryCategory.DRINKS to unionLower(R.array.grocery_kw_drinks),
-                GroceryCategory.SPICES to unionLower(R.array.grocery_kw_spices),
-                GroceryCategory.PANTRY to unionLower(R.array.grocery_kw_pantry),
-                GroceryCategory.DAIRY to unionLower(R.array.grocery_kw_dairy),
+                GroceryCategory.FROZEN to unionFolded(R.array.grocery_kw_frozen),
+                GroceryCategory.MEAT_FISH to unionFolded(R.array.grocery_kw_meat_fish),
+                GroceryCategory.PRODUCE to unionFolded(R.array.grocery_kw_produce),
+                GroceryCategory.BAKERY to unionFolded(R.array.grocery_kw_bakery),
+                GroceryCategory.DRINKS to unionFolded(R.array.grocery_kw_drinks),
+                GroceryCategory.SPICES to unionFolded(R.array.grocery_kw_spices),
+                GroceryCategory.PANTRY to unionFolded(R.array.grocery_kw_pantry),
+                GroceryCategory.DAIRY to unionFolded(R.array.grocery_kw_dairy),
             ),
         )
         IngredientStaples.setData(
-            all = unionLower(R.array.ingredient_staples).toSet(),
+            all = unionFolded(R.array.ingredient_staples).toSet(),
             // Pantry defaults keep their display capitalization (shown as-is in the pantry) and
             // stay in the active content language — they seed a new household's pantry rows.
             pantry = res.getStringArray(R.array.pantry_defaults).toList(),
         )
-        IngredientLineParser.setUnits(unionLower(R.array.ingredient_units).toSet())
+        IngredientLineParser.setUnits(unionFolded(R.array.ingredient_units).toSet())
         // Main-protein keywords for meal-planner variety. Fixed canonical group keys (also shown
         // in the reason), translated keyword lists unioned across languages — priority order kept.
         ProteinGroups.setGroups(
             listOf(
-                "geflügel" to unionLower(R.array.protein_kw_poultry),
-                "fisch" to unionLower(R.array.protein_kw_fish),
-                "hackfleisch" to unionLower(R.array.protein_kw_mince),
-                "schwein" to unionLower(R.array.protein_kw_pork),
-                "rind" to unionLower(R.array.protein_kw_beef),
-                "lamm" to unionLower(R.array.protein_kw_lamb),
-                "tofu" to unionLower(R.array.protein_kw_plant),
+                "geflügel" to unionFolded(R.array.protein_kw_poultry),
+                "fisch" to unionFolded(R.array.protein_kw_fish),
+                "hackfleisch" to unionFolded(R.array.protein_kw_mince),
+                "schwein" to unionFolded(R.array.protein_kw_pork),
+                "rind" to unionFolded(R.array.protein_kw_beef),
+                "lamm" to unionFolded(R.array.protein_kw_lamb),
+                "tofu" to unionFolded(R.array.protein_kw_plant),
             ),
         )
+        // Legacy/import category + meal words → the stable keys. Unioned like everything else:
+        // a French recipe restored from a backup must classify on a German phone too.
+        RecipeCategories.setAliases(
+            aliasMap(
+                "pasta" to R.array.cat_alias_pasta,
+                "meat" to R.array.cat_alias_meat,
+                "fish" to R.array.cat_alias_fish,
+                "soup" to R.array.cat_alias_soup,
+                "vegetarian" to R.array.cat_alias_vegetarian,
+                "salad" to R.array.cat_alias_salad,
+                "dessert" to R.array.cat_alias_dessert,
+                "other" to R.array.cat_alias_other,
+            ),
+        )
+        MealTypes.setAliases(
+            aliasMap(
+                "breakfast" to R.array.mealtype_alias_breakfast,
+                "lunch" to R.array.mealtype_alias_lunch,
+                "snack" to R.array.mealtype_alias_snack,
+                "dinner" to R.array.mealtype_alias_dinner,
+            ),
+        )
+        // Ingredient-matching mechanics, then the curated lexicon — in that order: the lexicon
+        // normalizes its entries at build time and must see the final vocabulary.
+        IngredientMatch.setVocabulary(
+            IngredientMatch.Vocabulary(
+                leadingNoise = unionFolded(R.array.ingredient_leading_noise),
+                usePhrases = unionFolded(R.array.ingredient_use_phrases),
+                pluralSuffixes = unionFolded(R.array.ingredient_plural_suffixes),
+                headConnectors = unionFolded(R.array.ingredient_head_connectors),
+            ),
+        )
+        IngredientLexicon.setData(
+            synonyms = unionFolded(R.array.ingredient_synonyms).map { it.split(SEP).toSet() },
+            distinct = unionFolded(R.array.ingredient_distinctions)
+                .map { it.split(SEP) }
+                .filter { it.size == 2 }
+                .map { (a, b) -> a to b },
+        )
+    }
+
+    /** A `"key|value"` array, merged across every bundled language, as a map. Values keep their
+     *  capitalization (they are display names), so this is not the lower-cased union. */
+    private fun pairMap(id: Int): Map<String, String> =
+        ContentLanguages.CODES
+            .flatMap { resourcesFor(it).getStringArray(id).toList() }
+            .mapNotNull { entry ->
+                val parts = entry.split(SEP)
+                if (parts.size == 2 && parts[0].isNotBlank()) parts[0].lowercase() to parts[1] else null
+            }
+            .toMap()
+
+    /** Flatten "<key> → word-list array" pairs into the word → key lookup the domain objects use. */
+    private fun aliasMap(vararg groups: Pair<String, Int>): Map<String, String> =
+        groups.flatMap { (key, id) -> unionFolded(id).map { it to key } }.toMap()
+
+    private companion object {
+        /** Separator inside a synonym group / distinction pair item. */
+        const val SEP = '|'
     }
 
     private fun resourcesFor(lang: String): Resources {
@@ -105,4 +207,9 @@ class LocalizedLists @Inject constructor(
      *  locale-independent (the device UI language no longer decides which vocabulary applies). */
     private fun unionLower(id: Int): List<String> =
         ContentLanguages.CODES.flatMap { resourcesFor(it).lower(id) }
+
+    /** [unionLower], folded like the names it is compared against ([TextFold.forMatch]), so a
+     *  list entry "الأرز" still meets an ingredient typed "ارز". Duration words stay unfolded:
+     *  they are matched inside the step text itself, which is shown as written. */
+    private fun unionFolded(id: Int): List<String> = unionLower(id).map(TextFold::forMatch)
 }

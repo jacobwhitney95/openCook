@@ -68,6 +68,7 @@ class PantryViewModel @Inject constructor(
     fun suggestions(query: String): List<String> = SuggestionRepository.filter(suggestionPool, query)
 
     fun add(name: String) = viewModelScope.launch { repository.addItem(name) }
+    fun setBasic(name: String, basic: Boolean) = viewModelScope.launch { repository.setBasic(name, basic) }
     fun delete(id: String) = viewModelScope.launch { repository.deleteItem(id) }
 
     /**

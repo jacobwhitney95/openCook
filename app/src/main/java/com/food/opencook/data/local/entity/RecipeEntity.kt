@@ -50,6 +50,8 @@ data class RecipeEntity(
     val lastCookedAt: String? = null,
     /** Optional collection/cookbook name for grouping in the recipe list. */
     val cookbook: String? = null,
+    /** The web page the recipe was imported from (schema.org `url`), shown as a link. */
+    val sourceUrl: String? = null,
     val prepTime: String? = null,
     val cookTime: String? = null,
     val totalTime: String? = null,

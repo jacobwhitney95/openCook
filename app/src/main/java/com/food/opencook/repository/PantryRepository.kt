@@ -49,6 +49,16 @@ class PantryRepository @Inject constructor(
         messageRecorder.record(PantryMessageEncoder.encode(item))
     }
 
+    /** Dragged into / out of the basics group (by name, like every pantry drag): the
+     *  household's decision, synced. */
+    suspend fun setBasic(name: String, basic: Boolean) {
+        val item = pantryDao.findByName(name) ?: return
+        if (item.isBasic() == basic) return
+        val updated = item.copy(basic = basic, updatedAt = System.currentTimeMillis())
+        pantryDao.upsert(updated)
+        messageRecorder.record(PantryMessageEncoder.encode(updated))
+    }
+
     suspend fun deleteItem(id: String) {
         pantryDao.deleteById(id)
         messageRecorder.record(PantryMessageEncoder.tombstone(id))
@@ -62,17 +72,21 @@ class PantryRepository @Inject constructor(
     }
 
     /**
-     * "Out" half of the pantry cycle: cooking a dish consumes its perishables. Staples
-     * ([IngredientStaples]) are kept — a packet of flour isn't used up by one bake, and
-     * without amounts we can't track partial use. Binary: a matched item is removed whole.
-     * Un-cooking does not restore items (not reconstructable without amounts).
+     * "Out" half of the pantry cycle: cooking a dish consumes its perishables. Basics
+     * ([isBasic]) are kept — a packet of flour isn't used up by one bake, and without
+     * amounts we can't track partial use. An ingredient a basic covers uses up nothing,
+     * not even another item that would match it too. Binary: a matched item is removed
+     * whole. Un-cooking does not restore items (not reconstructable without amounts).
      */
     suspend fun consume(ingredientNames: List<String>) {
         val pantry = pantryDao.getAll()
         if (pantry.isEmpty()) return
         ingredientNames.map { it.trim() }
-            .filter { it.isNotEmpty() && !IngredientStaples.isStaple(it) }
-            .forEach { ing -> pantry.firstOrNull { IngredientMatch.covers(it.name, ing) }?.let { deleteItem(it.id) } }
+            .filter { it.isNotEmpty() }
+            .forEach { ing ->
+                val covering = pantry.filter { IngredientMatch.covers(it.name, ing) }
+                if (covering.none { it.isBasic() }) covering.firstOrNull()?.let { deleteItem(it.id) }
+            }
     }
 
     /**
@@ -89,3 +103,9 @@ class PantryRepository @Inject constructor(
         }
     }
 }
+
+/**
+ * Whether [this] is a basic (see [PantryItemEntity.basic]): the household's choice if it
+ * made one, else the built-in staples list — salt, flour, oil … — as before.
+ */
+fun PantryItemEntity.isBasic(): Boolean = basic ?: IngredientStaples.isStaple(name)

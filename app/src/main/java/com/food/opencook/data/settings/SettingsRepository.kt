@@ -107,6 +107,14 @@ class SettingsRepository @Inject constructor(
         dataStore.edit { it[SWIPE_HINT_SEEN_PLAN] = true }
     }
 
+    /** How this device sorts the recipe list (a [com.food.opencook.ui.recipes.RecipeSort] name).
+     *  A personal view, so it stays local and is not synced to the household. */
+    val recipeSort: Flow<String?> = pref { it[RECIPE_SORT] }
+
+    suspend fun setRecipeSort(key: String) {
+        dataStore.edit { it[RECIPE_SORT] = key }
+    }
+
     suspend fun setLocalOnly(enabled: Boolean) {
         dataStore.edit { it[LOCAL_ONLY] = enabled }
     }
@@ -146,6 +154,16 @@ class SettingsRepository @Inject constructor(
         dataStore.edit { if (stored == null) it.remove(PLANNED_MEALS) else it[PLANNED_MEALS] = stored }
     }
 
+    /** Household-wide: meals may hold several dishes, added by hand (e.g. for guests). Off by
+     *  default, so the plan offers "+ meal" only for empty meals. The planner fills one either way. */
+    val multiDishMeals: Flow<Boolean> = pref { it[MULTI_DISH_MEALS] ?: false }
+
+    suspend fun multiDishMealsOnce(): Boolean = dataStore.data.first()[MULTI_DISH_MEALS] ?: false
+
+    suspend fun setMultiDishMeals(enabled: Boolean) {
+        dataStore.edit { it[MULTI_DISH_MEALS] = enabled }
+    }
+
     /**
      * The complete household-wide settings object as this device currently knows it.
      *
@@ -157,6 +175,7 @@ class SettingsRepository @Inject constructor(
         householdSize = householdSizeOnce(),
         contentLanguage = contentLanguageOnce(),
         plannedMeals = MealPlanSlots.toStored(plannedMealsOnce()),
+        multiDishMeals = multiDishMealsOnce(),
     )
 
     /** Adopt a settings object received from the server or a peer. Absent fields keep the
@@ -165,6 +184,7 @@ class SettingsRepository @Inject constructor(
         setHouseholdSize(remote.householdSize)
         setContentLanguage(remote.contentLanguage)
         remote.plannedMeals?.let { setPlannedMeals(MealPlanSlots.plannedFromStored(it)) }
+        remote.multiDishMeals?.let { setMultiDishMeals(it) }
     }
 
     /**
@@ -261,6 +281,34 @@ class SettingsRepository @Inject constructor(
         return generated
     }
 
+    /**
+     * The in-app browser's tiles, as the user has arranged them. **Device-local, not synced**:
+     * which sites someone likes to browse is a personal habit, not household data, and it
+     * carries no recipe content.
+     *
+     * Stored as two small lists rather than one materialised list, so a future app version that
+     * ships another default site still shows it: [discoverHiddenSites] are the built-in tiles
+     * that were removed, [discoverCustomSites] the addresses that were typed in.
+     */
+    val discoverHiddenSites: Flow<Set<String>> = pref { urls(it[DISCOVER_HIDDEN]).toSet() }
+    val discoverCustomSites: Flow<List<String>> = pref { urls(it[DISCOVER_CUSTOM]) }
+
+    suspend fun setDiscoverHiddenSites(urls: Collection<String>) {
+        store(DISCOVER_HIDDEN, urls)
+    }
+
+    suspend fun setDiscoverCustomSites(urls: Collection<String>) {
+        store(DISCOVER_CUSTOM, urls)
+    }
+
+    private fun urls(stored: String?): List<String> =
+        stored?.split("\n")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
+
+    private suspend fun store(key: Preferences.Key<String>, urls: Collection<String>) {
+        val joined = urls.map { it.trim() }.filter { it.isNotEmpty() }.joinToString("\n")
+        dataStore.edit { if (joined.isEmpty()) it.remove(key) else it[key] = joined }
+    }
+
     /** Persisted last HLC (packed), so the clock stays monotonic across restarts. */
     suspend fun lastHlc(): String? = dataStore.data.first()[LAST_HLC]
     suspend fun setLastHlc(packed: String) {
@@ -287,6 +335,10 @@ class SettingsRepository @Inject constructor(
         val HOUSEHOLD_PIN = stringPreferencesKey("household_pin")
         val P2P_ENABLED = booleanPreferencesKey("p2p_enabled")
         val PLANNED_MEALS = stringPreferencesKey("planned_meals")
+        val MULTI_DISH_MEALS = booleanPreferencesKey("multi_dish_meals")
+        val DISCOVER_HIDDEN = stringPreferencesKey("discover_hidden")
+        val DISCOVER_CUSTOM = stringPreferencesKey("discover_custom")
+        val RECIPE_SORT = stringPreferencesKey("recipe_sort")
     }
 }
 
@@ -298,7 +350,7 @@ class SettingsRepository @Inject constructor(
  * `server/app/i18n/<code>.json`.
  */
 object ContentLanguages {
-    val CODES = listOf("en", "de")
+    val CODES = listOf("en", "de", "fr", "es", "ar")
 }
 
 /**

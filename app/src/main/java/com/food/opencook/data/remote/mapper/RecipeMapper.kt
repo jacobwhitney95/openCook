@@ -27,6 +27,7 @@ import com.food.opencook.data.remote.dto.NutritionDto
 import com.food.opencook.data.remote.dto.RecipeDto
 import com.food.opencook.util.MealTypes
 import com.food.opencook.util.RecipeCategories
+import com.food.opencook.util.SourceLink
 import java.util.UUID
 
 /** A recipe plus its child rows, ready to insert in one transaction. */
@@ -106,6 +107,7 @@ fun RecipeDto.toMappedRecipe(
             tags = openCookTags.filter { it.isNotBlank() }.takeIf { it.isNotEmpty() }?.joinToString("\n"),
             lastCookedAt = openCookLastCookedAt?.takeIf { it.isNotBlank() },
             cookbook = cookbook?.takeIf { it.isNotBlank() },
+            sourceUrl = url?.trim()?.takeIf { SourceLink.isWebUrl(it) },
             prepTime = prepTime,
             cookTime = cookTime,
             totalTime = totalTime,

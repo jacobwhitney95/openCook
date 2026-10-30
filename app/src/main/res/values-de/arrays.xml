@@ -16,7 +16,10 @@
   ~  along with this program.  If not, see <https://www.gnu.org/licenses/>.
   -->
 
-<resources>
+<!-- These are *vocabulary* lists, not positional arrays: each language names as many words as
+     it needs, and they are unioned across languages at runtime. InconsistentArrays compares
+     item counts between locales, which is meaningless here. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="InconsistentArrays">
     <!-- Grocery-aisle keyword lists (substring match, lower-case). Order of aisles is fixed
          in code; first matching aisle wins. Items with leading/trailing spaces are quoted. -->
     <string-array name="grocery_kw_frozen">
@@ -124,5 +127,135 @@
     </string-array>
     <string-array name="protein_kw_plant">
         <item>tofu</item><item>tempeh</item><item>seitan</item>
+    </string-array>
+
+    <!-- Legacy/import category words → the fixed category keys (exact match, lower-case). -->
+    <string-array name="cat_alias_pasta">
+        <item>nudeln</item>
+    </string-array>
+    <string-array name="cat_alias_meat">
+        <item>fleisch</item><item>geflügel</item>
+    </string-array>
+    <string-array name="cat_alias_fish">
+        <item>fisch</item><item>meeresfrüchte</item>
+    </string-array>
+    <string-array name="cat_alias_soup">
+        <item>suppe</item><item>eintopf</item>
+    </string-array>
+    <string-array name="cat_alias_vegetarian">
+        <item>vegetarisch</item><item>veggie</item><item>vegan</item>
+    </string-array>
+    <string-array name="cat_alias_salad">
+        <item>salat</item>
+    </string-array>
+    <string-array name="cat_alias_dessert">
+        <item>nachtisch</item><item>nachspeise</item><item>süßspeise</item>
+    </string-array>
+    <string-array name="cat_alias_other">
+        <item>sonstiges</item><item>diverses</item>
+    </string-array>
+
+    <!-- Legacy/import meal words → the fixed meal-type keys (exact match, lower-case). -->
+    <string-array name="mealtype_alias_breakfast">
+        <item>frühstück</item><item>fruehstueck</item><item>morgens</item>
+    </string-array>
+    <string-array name="mealtype_alias_lunch">
+        <item>mittag</item><item>mittagessen</item>
+    </string-array>
+    <string-array name="mealtype_alias_snack">
+        <item>kaffee</item><item>kuchen</item><item>zwischenmahlzeit</item>
+    </string-array>
+    <string-array name="mealtype_alias_dinner">
+        <item>abend</item><item>abendessen</item><item>abendbrot</item>
+    </string-array>
+
+    <!-- Language mechanics for ingredient matching (see values/arrays.xml for what each does). -->
+    <string-array name="ingredient_leading_noise">
+        <item>etwas</item><item>"ein wenig"</item><item>"ein paar"</item><item>"ein bisschen"</item>
+        <item>"eine prise"</item><item>"eine handvoll"</item><item>"nach belieben"</item>
+        <item>circa</item><item>ca.</item><item>ca</item>
+        <item>el</item><item>tl</item><item>msp</item><item>msp.</item>
+        <item>g</item><item>kg</item><item>mg</item><item>ml</item><item>cl</item><item>l</item>
+        <item>dose</item><item>dosen</item><item>glas</item><item>gläser</item><item>becher</item>
+        <item>prise</item><item>prisen</item><item>löffel</item><item>esslöffel</item><item>teelöffel</item>
+        <item>tasse</item><item>tassen</item><item>bund</item><item>stück</item><item>stk.</item><item>stk</item>
+        <item>packung</item><item>packungen</item><item>pkg</item><item>pck</item><item>päckchen</item>
+        <item>scheibe</item><item>scheiben</item><item>zehe</item><item>zehen</item>
+        <item>kopf</item><item>köpfe</item><item>blatt</item><item>blätter</item>
+    </string-array>
+    <string-array name="ingredient_use_phrases">
+        <item>zum</item><item>zur</item><item>nach</item><item>für</item><item>fürs</item>
+    </string-array>
+    <string-array name="ingredient_plural_suffixes">
+        <item>en</item><item>n</item><item>e</item><item>s</item>
+    </string-array>
+    <!-- German puts the head noun last — no connectors. -->
+    <string-array name="ingredient_head_connectors" />
+    <string-array name="ingredient_synonyms">
+        <item>frühlingszwiebel|frühlingszwiebeln|lauchzwiebel|lauchzwiebeln</item>
+        <item>sojasauce|sojasoße|soja sauce</item>
+        <item>passierte tomaten|passata|tomatenpassata</item>
+        <item>creme fraiche|crème fraîche</item>
+        <item>natron|speisenatron</item>
+        <item>schmand|sauerrahm</item>
+        <item>magerquark|speisequark</item>
+    </string-array>
+    <string-array name="ingredient_distinctions">
+        <item>kichererbsen|erbsen</item>
+        <item>buttermilch|milch</item>
+        <item>kokosmilch|milch</item>
+        <item>mandelmilch|milch</item>
+        <item>hafermilch|milch</item>
+        <item>kondensmilch|milch</item>
+        <item>grünkohl|kohl</item>
+        <item>rotkohl|kohl</item>
+        <item>weißkohl|kohl</item>
+        <item>spitzkohl|kohl</item>
+        <item>puderzucker|zucker</item>
+        <item>brauner zucker|zucker</item>
+        <item>rohrzucker|zucker</item>
+        <item>erdbeeren|beeren</item>
+        <item>heidelbeeren|beeren</item>
+        <item>himbeeren|beeren</item>
+    </string-array>
+
+    <string-array name="discover_sites">
+        <item>https://www.chefkoch.de/rezepte/</item>
+        <item>https://www.kochbar.de/rezepte/</item>
+        <item>https://www.lecker.de/rezepte</item>
+        <item>https://eatsmarter.de/rezepte</item>
+        <item>https://www.essen-und-trinken.de/rezepte</item>
+        <item>https://www.gaumenfreundin.de/rezepte/</item>
+        <item>https://www.kitchenstories.com/de/rezepte</item>
+        <item>https://www.springlane.de/magazin/</item>
+        <item>https://www.brigitte.de/rezepte/</item>
+        <item>https://www.ndr.de/ratgeber/kochen/</item>
+    </string-array>
+
+    <string-array name="discover_site_names">
+        <item>chefkoch|Chefkoch</item>
+        <item>ndr|NDR</item>
+        <item>wdr|WDR</item>
+        <item>kochbar|Kochbar</item>
+        <item>lecker|Lecker</item>
+        <item>eatsmarter|EAT SMARTER</item>
+        <item>essen-und-trinken|Essen &amp; Trinken</item>
+        <item>gaumenfreundin|Gaumenfreundin</item>
+        <item>kitchenstories|Kitchen Stories</item>
+        <item>springlane|Springlane</item>
+        <item>brigitte|Brigitte</item>
+    </string-array>
+
+    <string-array name="duration_hours">
+        <item>stunden</item>
+        <item>stunde</item>
+        <item>std</item>
+        <item>h</item>
+    </string-array>
+    <string-array name="duration_minutes">
+        <item>minuten</item>
+        <item>minute</item>
+        <item>min</item>
+        <item>m</item>
     </string-array>
 </resources>

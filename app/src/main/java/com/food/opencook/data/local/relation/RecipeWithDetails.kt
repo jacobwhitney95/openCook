@@ -31,13 +31,13 @@ import com.food.opencook.data.local.entity.RecipeEntity
  * guaranteed ordered by Room, so consumers sort by `position` (see DAO/mapper).
  */
 data class RecipeWithDetails(
-    @Embedded val recipe: RecipeEntity,
+    @Embedded override val recipe: RecipeEntity,
     @Relation(parentColumn = "id", entityColumn = "recipeId")
-    val ingredients: List<IngredientEntity>,
+    override val ingredients: List<IngredientEntity>,
     @Relation(parentColumn = "id", entityColumn = "recipeId")
     val instructions: List<InstructionEntity>,
     @Relation(parentColumn = "id", entityColumn = "recipeId")
     val images: List<ImageEntity>,
     @Relation(parentColumn = "id", entityColumn = "recipeId")
     val nutrition: NutritionEntity?,
-)
+) : RecipeSummary

@@ -78,7 +78,9 @@ web-console HTML shell (which holds no data and prompts for the password itself)
 | POST | `/admin/restore/upload` | Restore from an uploaded `.tar.gz`. |
 | PATCH | `/admin/households/{household_id}` | Admin-edit a household: rename and/or set/change/clear its PIN (`{name?, pin?}`; `pin: ""` clears, `null` leaves). The plaintext PIN is never readable, only overwritten. |
 | DELETE | `/admin/households/{household_id}` | Delete a household + its sync log & imports. |
-| POST | `/admin/reset` | Wipe all data (keeps admin password + backups dir). |
+| POST | `/admin/reset` | Wipe all data (keeps admin password, custom prompts + backups dir). |
+| GET | `/admin/prompts` | Per content language: built-in and custom extraction instructions, the fixed output format, and its use: `in_use`, `used_by` (households set to it) and `from_scans` (seen only in recent scans of households following the device language, listed in `follow_device`). |
+| PATCH | `/admin/prompts/{language}` | Replace or reset a language's instructions (`{text_instructions?, box_instructions?}`; `null` leaves, blank resets to the built-in). Applies from the next scan. |
 
 ### Web admin console (`app/static/admin.html`)
 

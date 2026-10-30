@@ -19,7 +19,9 @@
 package com.food.opencook.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,8 +29,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -39,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,6 +56,7 @@ import com.food.opencook.ui.theme.Spacing
  * Photo-forward recipe card: large image (with a warm placeholder + heart overlay when
  * liked), title and a meta line. [imageModel] is a Coil model (File / URL) or null.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RecipeCard(
     title: String,
@@ -63,13 +70,49 @@ fun RecipeCard(
     containerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
     /** Optional outline, for the same purpose. */
     border: BorderStroke? = null,
+    /** Long-press — the recipe list uses it to start selecting. */
+    onLongClick: (() -> Unit)? = null,
+    /** Selection mode: null = off, otherwise whether this card is picked. */
+    selected: Boolean? = null,
 ) {
-    Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        border = border,
-    ) {
+    val shape = CardDefaults.shape
+    val content: @Composable () -> Unit = {
+        CardContent(title, subtitle, imageModel, liked, imageHeight, selected)
+    }
+    val colors = CardDefaults.cardColors(containerColor = containerColor)
+    // A picked card is outlined in the primary colour, so the selection reads at a glance
+    // even where the check mark sits on a busy photo.
+    val outline = if (selected == true) BorderStroke(3.dp, MaterialTheme.colorScheme.primary) else border
+    if (onLongClick == null) {
+        Card(onClick = onClick, modifier = modifier.fillMaxWidth(), shape = shape, colors = colors, border = outline) {
+            content()
+        }
+    } else {
+        // Card(onClick) has no long-press, so the click moves onto the modifier.
+        Card(
+            modifier = modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+            shape = shape,
+            colors = colors,
+            border = outline,
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
+private fun CardContent(
+    title: String,
+    subtitle: String?,
+    imageModel: Any?,
+    liked: Boolean,
+    imageHeight: Int,
+    selected: Boolean?,
+) {
+    Column {
         Box(Modifier.fillMaxWidth().height(imageHeight.dp)) {
             if (imageModel != null) {
                 AsyncImage(
@@ -96,6 +139,7 @@ fun RecipeCard(
             // It used to be a private white-on-black variant here, which read as a different
             // mark and was the only place in the app painting a colour outside the theme.
             if (liked) LikedBadge(Modifier.align(Alignment.TopStart))
+            if (selected != null) SelectionMark(selected, Modifier.align(Alignment.TopEnd))
         }
         Column(Modifier.padding(Spacing.md)) {
             Text(
@@ -114,5 +158,23 @@ fun RecipeCard(
                 )
             }
         }
+    }
+}
+
+/** Check mark in the photo's corner while selecting: filled when picked, an empty ring
+ *  otherwise — so every card shows it can be picked, not only the ones that are. */
+@Composable
+private fun SelectionMark(selected: Boolean, modifier: Modifier = Modifier) {
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        modifier = modifier.padding(Spacing.sm),
+    ) {
+        Icon(
+            if (selected) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
+            contentDescription = null,
+            tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(28.dp),
+        )
     }
 }

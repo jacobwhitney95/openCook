@@ -21,7 +21,8 @@ package com.food.opencook.ui.recipes
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.food.opencook.data.local.relation.RecipeWithDetails
+import com.food.opencook.data.local.relation.RecipeListItem
+import com.food.opencook.data.local.relation.RecipeSummary
 import com.food.opencook.data.settings.SettingsRepository
 import com.food.opencook.repository.PantryRepository
 import com.food.opencook.repository.RecipeRepository
@@ -33,17 +34,32 @@ import com.food.opencook.util.RecipeCategories
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.text.Collator
 import java.time.LocalDate
 
 /** Filter-sheet state: multi-select within a group, AND between groups. Empty = off. */
+/** Order of the recipe list. Not a filter: [RecipesViewModel.clearFilters] leaves it alone. */
+enum class RecipeSort {
+    NEWEST,
+    NAME,
+    ;
+
+    companion object {
+        fun fromStored(value: String?): RecipeSort = entries.firstOrNull { it.name == value } ?: NEWEST
+    }
+}
+
 data class RecipeFilters(
     val mealTypes: Set<String> = emptySet(),
     val categories: Set<String> = emptySet(),
@@ -68,7 +84,7 @@ data class RecipeFilters(
  */
 internal object RecipeSearchFilter {
     fun matches(
-        item: RecipeWithDetails,
+        item: RecipeSummary,
         query: String,
         filters: RecipeFilters,
         likedIds: Set<String>,
@@ -102,9 +118,9 @@ internal object RecipeSearchFilter {
 @HiltViewModel
 class RecipesViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    repository: RecipeRepository,
+    private val repository: RecipeRepository,
     pantryRepository: PantryRepository,
-    settings: SettingsRepository,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
 
     /** Pantry contents, lowercased — feeds the "cookable now" filter. */
@@ -112,8 +128,8 @@ class RecipesViewModel @Inject constructor(
         .map { items -> items.map { it.name.lowercase().trim() }.toSet() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
 
-    private val all: StateFlow<List<RecipeWithDetails>> =
-        repository.observeRecipes()
+    private val all: StateFlow<List<RecipeListItem>> =
+        repository.observeRecipeListItems()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _query = MutableStateFlow("")
@@ -133,19 +149,97 @@ class RecipesViewModel @Inject constructor(
         repository.observeLikedRecipeIds()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
 
-    val recipes: StateFlow<List<RecipeWithDetails>> =
-        combine(all, _query, _filters, likedIds, pantryNames) { list, q, filters, liked, pantry ->
-            list.filter { item ->
-                RecipeSearchFilter.matches(item, q, filters, liked, pantry) { key ->
-                    RecipeCategories.displayLabel(context, key)
+    val sort: StateFlow<RecipeSort> = settings.recipeSort
+        .map(RecipeSort::fromStored)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, RecipeSort.NEWEST)
+
+    private val filtered = combine(all, _query, _filters, likedIds, pantryNames) { list, q, filters, liked, pantry ->
+        list.filter { item ->
+            RecipeSearchFilter.matches(item, q, filters, liked, pantry) { key ->
+                RecipeCategories.displayLabel(context, key)
+            }
+        }
+    }
+
+    val recipes: StateFlow<List<RecipeListItem>> =
+        combine(filtered, sort) { list, sort ->
+            when (sort) {
+                // The DAO already delivers newest first.
+                RecipeSort.NEWEST -> list
+                // Locale-aware, so "Äpfel" files under A and case doesn't matter;
+                // nameless recipes go last instead of heading the list.
+                RecipeSort.NAME -> {
+                    val collator = Collator.getInstance().apply { strength = Collator.SECONDARY }
+                    list.sortedWith(
+                        compareBy<RecipeListItem> { it.recipe.name.isNullOrBlank() }
+                            .thenComparing({ it.recipe.name.orEmpty().trim() }, collator),
+                    )
                 }
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }
+            // Scanning every recipe's ingredients and resolving a localized category label per
+            // row is real work — off the main thread, or it lands in the frame that draws the
+            // list (and in the tab transition that got us here).
+            .flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val _selection = MutableStateFlow<Set<String>>(emptySet())
+
+    /**
+     * Recipes picked for a bulk action; empty = not in selection mode. Always a subset of
+     * what the list shows: narrowing the search drops what scrolled out of it, so the count
+     * in the bar and the confirmation is exactly what the user can see being deleted.
+     */
+    val selection: StateFlow<Set<String>> =
+        combine(_selection, recipes) { picked, shown ->
+            if (picked.isEmpty()) picked else picked intersect shown.mapTo(HashSet()) { it.recipe.id }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
+    fun toggleSelected(recipeId: String) = _selection.update {
+        if (recipeId in it) it - recipeId else it + recipeId
+    }
+
+    fun selectAll() { _selection.value = recipes.value.mapTo(HashSet()) { it.recipe.id } }
+
+    fun clearSelection() { _selection.value = emptySet() }
+
+    /** Delete the selected recipes (each emits its own tombstone) and leave selection mode. */
+    fun deleteSelected() {
+        val ids = selection.value
+        _selection.value = emptySet()
+        viewModelScope.launch { repository.deleteRecipes(ids) }
+    }
+
+    /** The picked recipes themselves — the bulk-edit dialogs start from their current values. */
+    fun selectedRecipes(): List<RecipeListItem> = selection.value.let { ids ->
+        recipes.value.filter { it.recipe.id in ids }
+    }
+
+    /**
+     * Apply the bulk-edit sheet to the selection. Null / empty means "left alone": only the
+     * fields the user actually touched are written, each recipe keeping the rest.
+     */
+    fun editSelection(cookbook: String?, category: String?, addMeals: Set<String>, removeMeals: Set<String>) =
+        bulkEdit { ids ->
+            cookbook?.let { repository.setCookbook(ids, it) }
+            category?.let { repository.setCategory(ids, it) }
+            repository.editMealTypes(ids, addMeals, removeMeals)
+        }
+
+    /** Edits keep the selection — setting a cookbook and then the meals is one job, not two. */
+    private fun bulkEdit(action: suspend (Set<String>) -> Unit) {
+        val ids = selection.value
+        viewModelScope.launch { action(ids) }
+    }
 
     val serverBaseUrl: StateFlow<String?> =
         settings.serverUrl.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     fun setQuery(value: String) { _query.value = value }
+
+    fun setSort(value: RecipeSort) {
+        viewModelScope.launch { settings.setRecipeSort(value.name) }
+    }
 
     fun toggleMealType(key: String) = _filters.update {
         it.copy(mealTypes = if (key in it.mealTypes) it.mealTypes - key else it.mealTypes + key)

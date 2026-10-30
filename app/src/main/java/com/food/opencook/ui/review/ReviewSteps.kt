@@ -41,12 +41,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
@@ -56,6 +55,7 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -101,8 +101,33 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import coil3.compose.rememberAsyncImagePainter
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.gestures.drag
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.PointerInputScope
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.platform.LocalHapticFeedback
+import sh.calvin.reorderable.DragGestureDetector
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import com.food.opencook.R
 import com.food.opencook.util.MealTypes
+import com.food.opencook.util.PastedList
 import com.food.opencook.util.RecipeCategories
 import com.food.opencook.ui.theme.Spacing
 import kotlin.math.roundToInt
@@ -384,94 +409,100 @@ fun IngredientsStep(
     viewModel: ReviewViewModel,
     index: Int,
 ) {
-    StepScroll {
-        if (recipe.ingredients.isEmpty()) {
-            EmptyHint(stringResource(R.string.wizard_no_ingredients))
-        } else {
-            recipe.ingredients.forEachIndexed { i, ingredient ->
-                IngredientCard(
-                    ingredient = ingredient,
-                    onChange = { transform ->
-                        viewModel.updateRecipe(index) {
-                            it.copy(ingredients = it.ingredients.mapIndexed { j, ing -> if (j == i) transform(ing) else ing })
-                        }
-                    },
-                    onApplySuggestion = { viewModel.applySuggestion(index, i) },
-                    onRemove = { viewModel.removeIngredient(index, i) },
-                )
-                Spacer(Modifier.height(Spacing.sm))
-            }
-        }
-        Spacer(Modifier.height(Spacing.sm))
-        FilledTonalButton(
-            onClick = { viewModel.addIngredient(index) },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(Icons.Outlined.Add, contentDescription = null)
-            Spacer(Modifier.width(Spacing.xs))
-            Text(stringResource(R.string.review_add_ingredient))
-        }
+    ReorderableCardList(
+        items = recipe.ingredients,
+        key = { it.rowKey },
+        emptyHint = stringResource(R.string.wizard_no_ingredients),
+        addLabel = stringResource(R.string.review_add_ingredient),
+        onAdd = { viewModel.addIngredient(index) },
+        onMove = { from, to -> viewModel.moveIngredient(index, from, to) },
+    ) { i, ingredient, modifier, fieldModifier ->
+        IngredientCard(
+            ingredient = ingredient,
+            modifier = modifier,
+            fieldModifier = fieldModifier,
+            onChange = { transform ->
+                viewModel.updateRecipe(index) {
+                    it.copy(ingredients = it.ingredients.mapIndexed { j, ing -> if (j == i) transform(ing) else ing })
+                }
+            },
+            onPasteList = { text -> viewModel.pasteIngredients(index, i, text) },
+            onApplySuggestion = { viewModel.applySuggestion(index, i) },
+            onRemove = { viewModel.removeIngredient(index, i) },
+        )
     }
 }
 
 @Composable
 private fun IngredientCard(
     ingredient: EditableIngredient,
+    modifier: Modifier,
+    fieldModifier: Modifier,
     onChange: ((EditableIngredient) -> EditableIngredient) -> Unit,
+    onPasteList: (String) -> Unit,
     onApplySuggestion: () -> Unit,
     onRemove: () -> Unit,
 ) {
     Card(
-        Modifier.fillMaxWidth(),
+        modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        Column(Modifier.padding(Spacing.md)) {
-            // Name is the primary field — give it the full width.
-            OutlinedTextField(
-                value = ingredient.name,
-                onValueChange = { v ->
-                    onChange { it.copy(name = v, suggestion = null, autoCorrected = false) }
-                },
-                label = { Text(stringResource(R.string.wizard_ingredient_name)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(Spacing.sm))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
+        // Delete sits on the right, vertically centred — the same spot as on a step card.
+        Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
                 OutlinedTextField(
-                    value = ingredient.quantity,
-                    onValueChange = { v -> onChange { it.copy(quantity = v) } },
-                    label = { Text(stringResource(R.string.wizard_ingredient_qty)) },
+                    value = ingredient.name,
+                    onValueChange = { v ->
+                        // A name never holds a line break, so one arriving is a pasted list.
+                        if ('\n' in v) onPasteList(v)
+                        else onChange { it.copy(name = v, suggestion = null, autoCorrected = false) }
+                    },
+                    // While empty the label carries the paste hint: a placeholder would only
+                    // show once the field is focused.
+                    label = {
+                        Text(stringResource(
+                            if (ingredient.name.isEmpty()) R.string.review_paste_hint_ingredient
+                            else R.string.wizard_ingredient_name,
+                        ))
+                    },
                     singleLine = true,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth().then(fieldModifier),
                 )
-                OutlinedTextField(
-                    value = ingredient.unit,
-                    onValueChange = { v -> onChange { it.copy(unit = v) } },
-                    label = { Text(stringResource(R.string.wizard_ingredient_unit)) },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = onRemove) {
-                    Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.review_remove))
-                }
-            }
-            when {
-                ingredient.suggestion != null -> TextButton(onClick = onApplySuggestion) {
-                    Text(
-                        stringResource(R.string.wizard_correction_suggest, ingredient.suggestion),
-                        style = MaterialTheme.typography.labelMedium,
+                Spacer(Modifier.height(Spacing.sm))
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    OutlinedTextField(
+                        value = ingredient.quantity,
+                        onValueChange = { v -> onChange { it.copy(quantity = v) } },
+                        label = { Text(stringResource(R.string.wizard_ingredient_qty)) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f).then(fieldModifier),
+                    )
+                    OutlinedTextField(
+                        value = ingredient.unit,
+                        onValueChange = { v -> onChange { it.copy(unit = v) } },
+                        label = { Text(stringResource(R.string.wizard_ingredient_unit)) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f).then(fieldModifier),
                     )
                 }
-                ingredient.autoCorrected -> Text(
-                    stringResource(R.string.wizard_correction_auto),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = Spacing.xs),
-                )
+                when {
+                    ingredient.suggestion != null -> TextButton(onClick = onApplySuggestion) {
+                        Text(
+                            stringResource(R.string.wizard_correction_suggest, ingredient.suggestion),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
+                    ingredient.autoCorrected -> Text(
+                        stringResource(R.string.wizard_correction_auto),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = Spacing.xs),
+                    )
+                }
+            }
+            Spacer(Modifier.width(Spacing.xs))
+            IconButton(onClick = onRemove) {
+                Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.review_remove))
             }
         }
     }
@@ -487,37 +518,27 @@ fun StepsStep(
     viewModel: ReviewViewModel,
     index: Int,
 ) {
-    StepScroll {
-        if (recipe.instructions.isEmpty()) {
-            EmptyHint(stringResource(R.string.wizard_no_steps))
-        } else {
-            recipe.instructions.forEachIndexed { i, step ->
-                StepCard(
-                    number = i + 1,
-                    text = step.text,
-                    isFirst = i == 0,
-                    isLast = i == recipe.instructions.lastIndex,
-                    onChange = { v ->
-                        viewModel.updateRecipe(index) {
-                            it.copy(instructions = it.instructions.mapIndexed { j, s -> if (j == i) s.copy(text = v) else s })
-                        }
-                    },
-                    onMoveUp = { viewModel.moveStep(index, i, i - 1) },
-                    onMoveDown = { viewModel.moveStep(index, i, i + 1) },
-                    onRemove = { viewModel.removeStep(index, i) },
-                )
-                Spacer(Modifier.height(Spacing.sm))
-            }
-        }
-        Spacer(Modifier.height(Spacing.sm))
-        FilledTonalButton(
-            onClick = { viewModel.addStep(index) },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(Icons.Outlined.Add, contentDescription = null)
-            Spacer(Modifier.width(Spacing.xs))
-            Text(stringResource(R.string.review_add_step))
-        }
+    ReorderableCardList(
+        items = recipe.instructions,
+        key = { it.rowKey },
+        emptyHint = stringResource(R.string.wizard_no_steps),
+        addLabel = stringResource(R.string.review_add_step),
+        onAdd = { viewModel.addStep(index) },
+        onMove = { from, to -> viewModel.moveStep(index, from, to) },
+    ) { i, step, modifier, fieldModifier ->
+        StepCard(
+            number = i + 1,
+            text = step.text,
+            modifier = modifier,
+            fieldModifier = fieldModifier,
+            onChange = { v ->
+                viewModel.updateRecipe(index) {
+                    it.copy(instructions = it.instructions.mapIndexed { j, s -> if (j == i) s.copy(text = v) else s })
+                }
+            },
+            onPasteList = { text -> viewModel.pasteSteps(index, i, text) },
+            onRemove = { viewModel.removeStep(index, i) },
+        )
     }
 }
 
@@ -525,22 +546,18 @@ fun StepsStep(
 private fun StepCard(
     number: Int,
     text: String,
-    isFirst: Boolean,
-    isLast: Boolean,
+    modifier: Modifier,
+    fieldModifier: Modifier,
     onChange: (String) -> Unit,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
+    onPasteList: (String) -> Unit,
     onRemove: () -> Unit,
 ) {
     Card(
-        Modifier.fillMaxWidth(),
+        modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        Row(
-            Modifier.padding(Spacing.md),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
+        // Number and delete vertically centred, delete in the same spot as on an ingredient card.
+        Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 Modifier
                     .size(36.dp)
@@ -554,24 +571,18 @@ private fun StepCard(
                     fontWeight = FontWeight.Bold,
                 )
             }
-            Column(Modifier.weight(1f)) {
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = onChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2,
-                )
-                Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                    IconButton(onClick = onMoveUp, enabled = !isFirst) {
-                        Icon(Icons.Outlined.ArrowUpward, contentDescription = stringResource(R.string.wizard_step_move_up))
-                    }
-                    IconButton(onClick = onMoveDown, enabled = !isLast) {
-                        Icon(Icons.Outlined.ArrowDownward, contentDescription = stringResource(R.string.wizard_step_move_down))
-                    }
-                    IconButton(onClick = onRemove) {
-                        Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.review_remove))
-                    }
-                }
+            Spacer(Modifier.width(Spacing.md))
+            OutlinedTextField(
+                value = text,
+                // A typed Enter stays a line break; several lines pasted at once are a list.
+                onValueChange = { v -> if (PastedList.isPastedSteps(text, v)) onPasteList(v) else onChange(v) },
+                placeholder = { Text(stringResource(R.string.review_paste_hint_step)) },
+                modifier = Modifier.weight(1f).then(fieldModifier),
+                minLines = 2,
+            )
+            Spacer(Modifier.width(Spacing.xs))
+            IconButton(onClick = onRemove) {
+                Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.review_remove))
             }
         }
     }
@@ -914,6 +925,129 @@ fun SummaryStep(
 /* Shared widgets                                                             */
 /* ------------------------------------------------------------------------- */
 
+/* ------------------------------------------------------------------------- */
+/* Reordering ingredients / steps                                             */
+/* ------------------------------------------------------------------------- */
+
+// A gesture-driven drag (sh.calvin.reorderable), not platform drag & drop like the shopping
+// list and meal planner: those drop a card onto a *different* target (aisle, day), here it
+// only moves within its own list. The lifted card follows the finger, its neighbours make
+// room as it passes, and the edge scroll is driven by where the finger is right now — not by
+// system DragEvents, which some devices deliver late or not at all, leaving a list scrolling
+// on with nothing to stop it (GitHub #13).
+
+/**
+ * The ingredient/step editor list: a long press on a card's free area lifts it, and the add
+ * button stays pinned below the list so it is reachable without scrolling to the end.
+ * [card] gets its list position, its item, the modifier for the card itself and the one for
+ * each of its text fields (see [CardLongPress]).
+ */
+@Composable
+private fun <T> ReorderableCardList(
+    items: List<T>,
+    key: (T) -> Any,
+    emptyHint: String,
+    addLabel: String,
+    onAdd: () -> Unit,
+    onMove: (from: Int, to: Int) -> Unit,
+    card: @Composable (i: Int, item: T, modifier: Modifier, fieldModifier: Modifier) -> Unit,
+) {
+    val listState = rememberLazyListState()
+    val haptics = LocalHapticFeedback.current
+    val reorderState = rememberReorderableLazyListState(listState) { from, to ->
+        onMove(from.index, to.index)
+        haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+    }
+    val longPress = remember { CardLongPress() }
+    val moveUp = stringResource(R.string.wizard_step_move_up)
+    val moveDown = stringResource(R.string.wizard_step_move_down)
+
+    // A freshly added row lands at the end, below the fold of a long list: bring it into view.
+    var lastSize by remember { mutableIntStateOf(items.size) }
+    LaunchedEffect(items.size) {
+        if (items.size > lastSize) listState.animateScrollToItem(items.lastIndex)
+        lastSize = items.size
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = Spacing.screen, vertical = Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            if (items.isEmpty()) item { EmptyHint(emptyHint) }
+            itemsIndexed(items, key = { _, item -> key(item) }) { i, item ->
+                ReorderableItem(reorderState, key = key(item)) { isDragging ->
+                    val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "lift")
+                    val modifier = Modifier
+                        .shadow(elevation, CardDefaults.shape)
+                        // TalkBack users can't drag, so they get "move up"/"move down" instead.
+                        .semantics {
+                            customActions = buildList {
+                                if (i > 0) add(CustomAccessibilityAction(moveUp) { onMove(i, i - 1); true })
+                                if (i < items.lastIndex) add(CustomAccessibilityAction(moveDown) { onMove(i, i + 1); true })
+                            }
+                        }
+                        .draggableHandle(
+                            onDragStarted = { haptics.performHapticFeedback(HapticFeedbackType.LongPress) },
+                            dragGestureDetector = longPress,
+                        )
+                    card(i, item, modifier, longPress.fieldModifier)
+                }
+            }
+        }
+        FilledTonalButton(
+            onClick = onAdd,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.screen, vertical = Spacing.sm),
+        ) {
+            Icon(Icons.Outlined.Add, contentDescription = null)
+            Spacer(Modifier.width(Spacing.xs))
+            Text(addLabel)
+        }
+    }
+}
+
+/**
+ * Long press, then drag — except when the press lands in a text field, where a long press
+ * must keep selecting text. The field sees the touch-down first (initial pass, before the
+ * card) and flags it via [fieldModifier]; the card's detector then sits that gesture out.
+ */
+private class CardLongPress : DragGestureDetector {
+    private var fieldTouched = false
+
+    val fieldModifier: Modifier = Modifier.pointerInput(Unit) {
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            fieldTouched = true
+        }
+    }
+
+    override suspend fun PointerInputScope.detect(
+        onDragStart: (Offset) -> Unit,
+        onDragEnd: () -> Unit,
+        onDragCancel: () -> Unit,
+        onDrag: (change: PointerInputChange, dragAmount: Offset) -> Unit,
+    ) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            if (fieldTouched) {
+                fieldTouched = false
+                return@awaitEachGesture
+            }
+            val press = awaitLongPressOrCancellation(down.id) ?: return@awaitEachGesture
+            onDragStart(press.position)
+            val completed = drag(press.id) { change ->
+                onDrag(change, change.positionChange())
+                change.consume()
+            }
+            if (completed) onDragEnd() else onDragCancel()
+        }
+    }
+}
+
 @Composable
 private fun StepScroll(content: @Composable () -> Unit) {
     Column(
@@ -953,23 +1087,35 @@ private fun EmptyHint(text: String) {
 
 /** Multi-select "suitable for" picker: [MealTypes.KEYS] as toggleable chips. Unlike the
  *  single-select [CategoryChips], several meals can be active (soup = lunch AND dinner).
- *  An empty selection is allowed — it stores null, and the lunch+dinner default applies. */
+ *  An empty selection is allowed — it stores null, and the lunch+dinner default applies.
+ *  [mixed] marks meals only some of several recipes have (the recipe list's bulk edit). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun MealTypeChips(selected: List<String>, onToggle: (String) -> Unit) {
+internal fun MealTypeChips(
+    selected: List<String>,
+    onToggle: (String) -> Unit,
+    mixed: Set<String> = emptySet(),
+    showLabel: Boolean = true,
+) {
     Column {
-        Text(
-            stringResource(R.string.recipe_mealtypes_label),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(Spacing.xs))
+        if (showLabel) {
+            Text(
+                stringResource(R.string.recipe_mealtypes_label),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(Spacing.xs))
+        }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             MealTypes.KEYS.forEach { key ->
                 FilterChip(
                     selected = key in selected,
                     onClick = { onToggle(key) },
                     label = { Text(stringResource(MealTypes.labelRes(key))) },
+                    // The checkbox's "indeterminate" dash, so "some of them" reads as its own state.
+                    leadingIcon = if (key in mixed && key !in selected) {
+                        { Icon(Icons.Outlined.Remove, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                    } else null,
                 )
             }
         }
@@ -979,15 +1125,17 @@ private fun MealTypeChips(selected: List<String>, onToggle: (String) -> Unit) {
 /** Coarse-category picker: the fixed [RecipeCategories.KEYS] as toggleable chips (stores the key). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CategoryChips(current: String, onPick: (String) -> Unit) {
+internal fun CategoryChips(current: String, onPick: (String) -> Unit, showLabel: Boolean = true) {
     val selected = current.takeIf { it.isNotBlank() }?.let { RecipeCategories.normalizeKey(it) }
     Column {
-        Text(
-            stringResource(R.string.review_category),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(Spacing.xs))
+        if (showLabel) {
+            Text(
+                stringResource(R.string.review_category),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(Spacing.xs))
+        }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             RecipeCategories.KEYS.forEach { key ->
                 FilterChip(

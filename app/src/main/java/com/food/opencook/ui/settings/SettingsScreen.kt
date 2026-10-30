@@ -125,15 +125,13 @@ fun SettingsScreen(
                 onClick = onOpenAppearance,
                 showChevron = true,
             )
-            if (joined) {
-                SettingsRow(
-                    icon = Icons.Outlined.Backup,
-                    title = stringResource(R.string.settings_backup),
-                    subtitle = lastBackup ?: stringResource(R.string.settings_backup_subtitle),
-                    onClick = onOpenBackup,
-                    showChevron = true,
-                )
-            }
+            SettingsRow(
+                icon = Icons.Outlined.Backup,
+                title = stringResource(R.string.settings_backup),
+                subtitle = lastBackup ?: stringResource(R.string.settings_backup_subtitle),
+                onClick = onOpenBackup,
+                showChevron = true,
+            )
             SettingsRow(
                 icon = Icons.Outlined.Info,
                 title = stringResource(R.string.settings_about),

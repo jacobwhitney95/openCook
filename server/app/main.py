@@ -17,6 +17,7 @@ from app.api import admin, households, images, imports, jobs, sync
 from app.db import engine, init_db
 from app.security import seed_admin_password
 from app.discovery import MdnsAdvertiser
+from app.vision_client import warn_if_outside_home_network
 from app.worker import worker_loop
 
 logging.basicConfig(level=logging.INFO)
@@ -31,6 +32,7 @@ async def lifespan(_app: FastAPI):
     with engine.connect() as conn:
         conn.exec_driver_sql("PRAGMA wal_checkpoint(TRUNCATE)")
     seed_admin_password()
+    await warn_if_outside_home_network()
     mdns = MdnsAdvertiser()
     await mdns.start()
     stop_event = asyncio.Event()

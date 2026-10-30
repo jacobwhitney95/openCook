@@ -1,0 +1,285 @@
+<!--
+  ~  openCook
+  ~  Copyright (C) 2026 olie.xdev <olie.xdeveloper@googlemail.com>
+  ~
+  ~  This program is free software: you can redistribute it and/or modify
+  ~  it under the terms of the GNU General Public License as published by
+  ~  the Free Software Foundation, either version 3 of the License, or
+  ~  (at your option) any later version.
+  ~
+  ~  This program is distributed in the hope that it will be useful,
+  ~  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~  GNU General Public License for more details.
+  ~
+  ~  You should have received a copy of the GNU General Public License
+  ~  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<!-- These are *vocabulary* lists, not positional arrays: each language names as many words as
+     it needs, and they are unioned across languages at runtime. InconsistentArrays compares
+     item counts between locales, which is meaningless here. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="InconsistentArrays">
+    <!-- Default (English) grocery-aisle keyword lists. Substring match, lower-case; aisle order
+         is fixed in code (first match wins). Items with spaces are quoted to keep them. -->
+    <string-array name="grocery_kw_frozen">
+        <item>مجمد</item><item>"آيس كريم"</item><item>بوظة</item>
+    </string-array>
+    <string-array name="grocery_kw_meat_fish">
+        <item>دجاج</item><item>"ديك رومي"</item><item>"لحم بقر"</item><item>"لحم خنزير"</item><item>بيكون</item>
+        <item>هام</item><item>سجق</item><item>سلامي</item><item>"لحم مفروم"</item><item>كفتة</item>
+        <item>ستيك</item><item>"لحم ضأن"</item><item>لحم</item><item>سلمون</item><item>تونة</item>
+        <item>ربيان</item><item>جمبري</item><item>سمك</item><item>فيليه</item><item>"شرائح سمك"</item>
+        <item>"سمك القد"</item><item>"سلمون مرقط"</item>
+    </string-array>
+    <string-array name="grocery_kw_produce">
+        <item>طماطم</item><item>"فلفل رومي"</item><item>بصل</item><item>ثوم</item><item>جزر</item>
+        <item>بطاطس</item><item>خس</item><item>سلطة</item><item>خيار</item><item>كوسا</item>
+        <item>كوسة</item><item>بروكلي</item><item>قرنبيط</item><item>سبانخ</item><item>كراث</item>
+        <item>فطر</item><item>تفاح</item><item>موز</item><item>ليمون</item><item>"ليمون أخضر"</item>
+        <item>برتقال</item><item>توت</item><item>"توت بري"</item><item>أفوكادو</item><item>زنجبيل</item>
+        <item>"فلفل حار"</item><item>"فلفل أحمر"</item><item>بقدونس</item><item>ريحان</item><item>"ثوم معمر"</item>
+        <item>فاصولياء</item><item>"بازلاء"</item><item>ذرة</item><item>يقطين</item><item>باذنجان</item>
+        <item>بندورة</item><item>كرفس</item><item>جرجير</item><item>كمثرى</item>
+        <item>عنب</item><item>مانجو</item><item>أعشاب</item><item>خضار</item><item>فاكهة</item>
+    </string-array>
+    <string-array name="grocery_kw_bakery">
+        <item>خبز</item><item>"لفة"</item><item>"خبز برغر"</item><item>توست</item><item>باغيت</item>
+        <item>كرواسون</item><item>بيغل</item>
+    </string-array>
+    <string-array name="grocery_kw_drinks">
+        <item>ماء</item><item>عصير</item><item>قهوة</item><item>"شاي"</item><item>كولا</item>
+        <item>صودا</item><item>بيرة</item><item>نبيذ</item><item>سموذي</item>
+    </string-array>
+    <string-array name="grocery_kw_spices">
+        <item>ملح</item><item>فلفل</item><item>بابريكا</item><item>كاري</item><item>كمون</item>
+        <item>قرفة</item><item>"جوز الطيب"</item><item>أوريغانو</item><item>زعتر</item><item>"إكليل الجبل"</item>
+        <item>"صلصة الصويا"</item><item>"خل "</item><item>خردل</item><item>كاتشب</item><item>مايونيز</item>
+        <item>مرق</item><item>مرقة</item><item>"معجون الطماطم"</item><item>فانيليا</item><item>بهارات</item>
+        <item>"زيت زيتون"</item><item>"زيت "</item><item>صلصة</item>
+    </string-array>
+    <string-array name="grocery_kw_pantry">
+        <item>نودلز</item><item>سباغيتي</item><item>معكرونة</item><item>أرز</item><item>دقيق</item>
+        <item>سكر</item><item>عدس</item><item>حمص</item><item>كسكس</item><item>شوفان</item>
+        <item>"دقيق الشوفان"</item><item>موسلي</item><item>"حبوب الإفطار"</item><item>"علبة"</item><item>معلب</item>
+        <item>"حليب جوز الهند"</item><item>"بيكنج باودر"</item><item>خميرة</item><item>عسل</item><item>مربى</item>
+        <item>شوكولاتة</item><item>كاكاو</item><item>بولينتا</item><item>سميد</item>
+    </string-array>
+    <string-array name="grocery_kw_dairy">
+        <item>حليب</item><item>قشطة</item><item>زبدة</item><item>زبادي</item><item>لبن</item>
+        <item>كوارك</item><item>"جبنة كريمية"</item><item>جبن</item><item>"بيض"</item><item>موزاريلا</item>
+        <item>بارميزان</item><item>فيتا</item><item>مارغرين</item>
+    </string-array>
+
+    <!-- Background staples the meal-planner excludes from the reuse score. -->
+    <string-array name="ingredient_staples">
+        <item>ملح</item><item>"ملح وفلفل"</item><item>فلفل</item><item>"فلفل أسود"</item><item>"فلفل أبيض"</item>
+        <item>زيت</item><item>"زيت زيتون"</item><item>"زيت نباتي"</item><item>"زيت دوار الشمس"</item><item>"زيت الكانولا"</item>
+        <item>زبدة</item><item>ماء</item><item>خل</item><item>سكر</item><item>دقيق</item>
+        <item>مرق</item><item>"مرق الخضار"</item><item>"مرق الدجاج"</item><item>مرقة</item><item>"مكعب مرقة"</item>
+        <item>خردل</item><item>"معجون الطماطم"</item><item>"صلصة الصويا"</item>
+        <item>بابريكا</item><item>"جوز الطيب"</item><item>عسل</item>
+        <item>"بيكنج باودر"</item><item>"سكر الفانيليا"</item><item>"خميرة جافة"</item><item>خميرة</item>
+    </string-array>
+
+    <!-- Staples seeded into a new household's pantry (display spelling). -->
+    <string-array name="pantry_defaults">
+        <item>ملح</item><item>فلفل</item><item>زيت زيتون</item><item>زبدة</item><item>خل</item>
+        <item>سكر</item><item>دقيق</item><item>مرق الخضار</item><item>مكعب مرقة</item><item>خردل</item>
+        <item>معجون الطماطم</item><item>صلصة الصويا</item><item>بابريكا</item><item>جوز الطيب</item><item>عسل</item>
+        <item>بيكنج باودر</item><item>سكر الفانيليا</item><item>خميرة جافة</item>
+    </string-array>
+
+    <!-- Recognized measuring units (kept verbatim; never converted). Metric is universal. -->
+    <string-array name="ingredient_units">
+        <item>g</item><item>kg</item><item>mg</item><item>l</item><item>ml</item><item>cl</item><item>dl</item>
+        <item>لتر</item><item>ليتر</item><item>ل</item><item>غرام</item><item>كيلوغرام</item><item>غ</item><item>كغ</item><item>جرام</item><item>جم</item><item>مل</item>
+        <item>كوب</item><item>أكواب</item><item>"ملعقة كبيرة"</item><item>"ملاعق كبيرة"</item><item>"ملعقة طعام"</item><item>"ملاعق طعام"</item>
+        <item>"ملعقة صغيرة"</item><item>"ملاعق صغيرة"</item><item>"ملعقة شاي"</item><item>"ملاعق شاي"</item><item>أونصة</item><item>رطل</item>
+        <item>أرطال</item><item>باوند</item><item>باوندات</item><item>فص</item><item>فصوص</item><item>رشة</item>
+        <item>رشات</item><item>علبة</item><item>علب</item><item>شريحة</item><item>شرائح</item><item>حزمة</item>
+        <item>عود</item><item>أعواد</item><item>عبوة</item><item>ظرف</item><item>كيس</item><item>برطمان</item>
+        <item>حفنة</item><item>قطرة</item><item>قطرات</item><item>لمسة</item><item>باينت</item><item>كوارت</item>
+        <item>غالون</item><item>ساق</item><item>سيقان</item><item>غصن</item><item>أغصان</item><item>رأس</item>
+        <item>قطعة</item><item>قطع</item>
+    </string-array>
+
+    <!-- Main-protein keywords for the meal-planner variety scoring (substring match, lower-case).
+         Grouped by a fixed canonical key; only the keywords are translated per language. -->
+    <string-array name="protein_kw_poultry">
+        <item>دجاج</item><item>"ديك رومي"</item><item>دواجن</item>
+    </string-array>
+    <string-array name="protein_kw_fish">
+        <item>سمك</item><item>سلمون</item><item>تونة</item><item>"سلمون مرقط"</item><item>ربيان</item><item>جمبري</item>
+    </string-array>
+    <string-array name="protein_kw_mince">
+        <item>"لحم مفروم"</item>
+    </string-array>
+    <string-array name="protein_kw_pork">
+        <item>"لحم خنزير"</item><item>بيكون</item>
+    </string-array>
+    <string-array name="protein_kw_beef">
+        <item>"لحم بقر"</item><item>ستيك</item>
+    </string-array>
+    <string-array name="protein_kw_lamb">
+        <item>"لحم ضأن"</item>
+    </string-array>
+    <string-array name="protein_kw_plant">
+        <item>توفو</item><item>تمبيه</item><item>سيتان</item>
+    </string-array>
+
+    <!-- Legacy/import category words → the fixed category keys (exact match, lower-case).
+         The keys themselves ("pasta", "meat", …) always match and need no entry here; add only
+         the words your language uses when a recipe was imported or written by hand. -->
+    <string-array name="cat_alias_pasta">
+        <item>نودلز</item><item>مكرونة</item><item>معكرونة</item><item>باستا</item>
+    </string-array>
+    <string-array name="cat_alias_meat">
+        <item>لحم</item><item>لحوم</item><item>دواجن</item><item>دجاج</item>
+    </string-array>
+    <string-array name="cat_alias_fish">
+        <item>سمك</item><item>أسماك</item><item>"مأكولات بحرية"</item>
+    </string-array>
+    <string-array name="cat_alias_soup">
+        <item>شوربة</item><item>شوربات</item><item>حساء</item><item>يخنة</item>
+    </string-array>
+    <string-array name="cat_alias_vegetarian">
+        <item>نباتي</item><item>نباتية</item><item>فيغان</item><item>فيجان</item>
+    </string-array>
+    <string-array name="cat_alias_salad">
+        <item>سلطة</item><item>سلطات</item>
+    </string-array>
+    <string-array name="cat_alias_dessert">
+        <item>حلوى</item><item>حلويات</item>
+    </string-array>
+    <string-array name="cat_alias_other">
+        <item>متنوع</item><item>منوعات</item>
+    </string-array>
+
+    <!-- Legacy/import meal words → the fixed meal-type keys (exact match, lower-case).
+         The keys themselves ("breakfast", "lunch", "snack", "dinner") need no entry. -->
+    <string-array name="mealtype_alias_breakfast">
+        <item>فطور</item><item>إفطار</item><item>افطار</item><item>صباح</item><item>برانش</item>
+    </string-array>
+    <string-array name="mealtype_alias_lunch">
+        <item>غداء</item><item>غدا</item><item>ظهر</item><item>"منتصف النهار"</item>
+    </string-array>
+    <string-array name="mealtype_alias_snack">
+        <item>كيك</item><item>قهوة</item><item>"وقت الشاي"</item><item>"وجبة خفيفة"</item><item>سناك</item><item>تصبيرة</item>
+    </string-array>
+    <string-array name="mealtype_alias_dinner">
+        <item>عشاء</item><item>عشا</item><item>"وجبة مسائية"</item><item>مساء</item>
+    </string-array>
+
+    <!-- Language mechanics for ingredient matching. All four are optional: leave a list out and
+         the English/German fallback applies — nothing breaks, matching is just less precise. -->
+
+    <!-- Measure and vague-amount words that leak into an ingredient *name* ("3 tbsp oil",
+         "a pinch of salt"). Stripped before and after a leading number. Only words that never
+         *start* a real ingredient name belong here. -->
+    <string-array name="ingredient_leading_noise">
+        <item>"قليل من"</item><item>"القليل من"</item><item>بضع</item><item>"رشة من"</item>
+        <item>"حفنة من"</item><item>حوالي</item><item>تقريبًا</item><item>نحو</item><item>بعض</item>
+        <item>g</item><item>kg</item><item>mg</item><item>ml</item><item>cl</item><item>l</item>
+        <item>غ</item><item>كغ</item><item>مل</item><item>جرام</item><item>جم</item>
+        <item>أونصة</item><item>رطل</item><item>أرطال</item><item>"ملعقة كبيرة"</item><item>"ملعقة صغيرة"</item>
+        <item>كوب</item><item>أكواب</item><item>علبة</item><item>علب</item><item>برطمان</item>
+        <item>عبوة</item><item>باكيت</item><item>شريحة</item><item>شرائح</item>
+        <item>فص</item><item>فصوص</item><item>رشة</item><item>ربطة</item>
+        <item>عود</item><item>أعواد</item><item>غصن</item><item>أغصان</item><item>قطرة</item><item>قطرات</item>
+    </string-array>
+
+    <!-- Words opening a trailing *use* phrase: "butter for frying" is still butter. -->
+    <string-array name="ingredient_use_phrases">
+        <item>حسب</item><item>"من أجل"</item>
+    </string-array>
+
+    <!-- Suffixes relating a plural to its singular ("tomatoes"/"tomato"). Only the plain
+         sound plural (معلب/معلبات): ة → ات (قطرة/قطرات) is handled in code, and broken plurals
+         (شريحة/شرائح) cannot be a suffix rule — they belong in ingredient_synonyms. -->
+    <string-array name="ingredient_plural_suffixes">
+        <item>ات</item>
+    </string-array>
+
+    <!-- Words marking the modifier of a head-INITIAL compound ("huile d\'olive" → huile).
+         English puts the head last, so this list is deliberately empty. -->
+    <string-array name="ingredient_head_connectors" />
+
+    <!-- Same-product groups, "|"-separated. Keep short: a wrong entry silently merges
+         two real ingredients. -->
+    <string-array name="ingredient_synonyms">
+        <item>بصل أخضر|بصل ربيعي|بصيلات</item>
+        <item>كزبرة|كزبرة خضراء</item>
+        <item>بساتا|صلصة طماطم مصفاة|طماطم مصفاة</item>
+        <item>بيكربونات الصوديوم|صودا الخبز</item>
+        <item>بيضة|بيض</item>
+        <item>طماطم|بندورة</item>
+        <item>كوسا|كوسة</item>
+    </string-array>
+
+    <!-- "Never the same" pairs, "|"-separated, exactly two per line. These block a staple from
+         swallowing a named variety once head detection generalizes. -->
+    <string-array name="ingredient_distinctions">
+        <item>حليب جوز الهند|حليب</item>
+        <item>حليب اللوز|حليب</item>
+        <item>حليب الشوفان|حليب</item>
+        <item>لبن الزبدة|حليب</item>
+        <item>سكر بني|سكر</item>
+        <item>سكر مطحون|سكر</item>
+        <item>سكر الزينة|سكر</item>
+        <item>سكر الفانيليا|سكر</item>
+        <item>زيت السمسم|زيت</item>
+        <item>زيت الكمأة|زيت</item>
+        <item>خل بلسمي|خل</item>
+        <item>دقيق الأرز|دقيق</item>
+        <item>دقيق الذرة|دقيق</item>
+        <item>فلفل رومي|فلفل</item>
+        <item>فلفل حار|فلفل</item>
+        <item>فلفل أحمر|فلفل</item>
+        <item>زبدة الفول السوداني|زبدة</item>
+        <item>ماء الورد|ماء</item>
+        <item>ماء الزهر|ماء</item>
+    </string-array>
+
+    <!-- discover_sites is intentionally omitted: the default (English) board lists only English-language
+         recipe sites, so a copy here added nothing for Arabic households. With the array absent the
+         default list is used (see the note in values/arrays.xml). -->
+
+    <!-- How a site spells its own name: "domain label|display name". Only needed where simple
+         capitalization gets it wrong ("bbcgoodfood" would read "Bbcgoodfood"). Names the
+         browser tile *and* the cookbook an imported recipe is filed under - one list, so the
+         two can never drift apart. Merged across all languages. -->
+    <string-array name="discover_site_names">
+        <item>allrecipes|Allrecipes</item>
+        <item>bbcgoodfood|BBC Good Food</item>
+        <item>bbc|BBC Food</item>
+        <item>seriouseats|Serious Eats</item>
+        <item>simplyrecipes|Simply Recipes</item>
+        <item>foodnetwork|Food Network</item>
+        <item>epicurious|Epicurious</item>
+        <item>delish|Delish</item>
+        <item>jamieoliver|Jamie Oliver</item>
+        <item>budgetbytes|Budget Bytes</item>
+        <item>tasteofhome|Taste of Home</item>
+        <item>recipetineats|RecipeTin Eats</item>
+    </string-array>
+
+    <!-- Words that mark an hour / a minute in a typed or imported cooking time
+         ("1 hour 10 min"). Read only, never written: what a duration *reads* as is
+         rendered by the platform (android.icu MeasureFormat, device locale). Merged across all
+         languages, so a German recipe still parses on an English phone. -->
+    <string-array name="duration_hours">
+        <item>ساعات</item>
+        <item>ساعة</item>
+        <item>ساعتان</item>
+        <item>ساعتين</item>
+        <item>س</item>
+    </string-array>
+    <string-array name="duration_minutes">
+        <item>دقائق</item>
+        <item>دقيقة</item>
+        <item>دقيقتان</item>
+        <item>دقيقتين</item>
+        <item>د</item>
+    </string-array>
+</resources>

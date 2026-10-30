@@ -20,6 +20,7 @@ package com.food.opencook
 
 import com.food.opencook.util.DurationFormat
 import com.food.opencook.util.Numbers
+import com.food.opencook.util.RecipeCategories
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -64,11 +65,41 @@ class NumbersTest {
         assertNull(Numbers.scaleQuantity(null, 2.0)) // unquantified (salt) stays null
     }
 
+    /** An import must tell "I don't know this word" from a deliberate "other", so a site's
+     *  free-text `recipeCategory` cannot silently file every recipe under "Other". */
+    @Test
+    fun categoryMatchKeepsUnknownApartFromOther() {
+        assertEquals("dessert", RecipeCategories.matchKeyOrNull("Dessert"))
+        assertEquals("dessert", RecipeCategories.matchKeyOrNull(" Nachtisch ")) // alias, trimmed
+        assertEquals("other", RecipeCategories.matchKeyOrNull("other")) // a real answer
+        assertNull(RecipeCategories.matchKeyOrNull("Hauptspeise")) // a meal, not a category
+        // Arabic: the article and spelling variants are folded before the alias lookup.
+        val saved = RecipeCategories.activeAliases
+        try {
+            RecipeCategories.setAliases(saved + mapOf("لحوم" to "meat"))
+            assertEquals("meat", RecipeCategories.matchKeyOrNull("اللحوم"))
+        } finally {
+            RecipeCategories.setAliases(saved)
+        }
+        assertNull(RecipeCategories.matchKeyOrNull(""))
+        assertNull(RecipeCategories.matchKeyOrNull(null))
+        // normalizeKey keeps flattening for the storage/filter paths.
+        assertEquals("other", RecipeCategories.normalizeKey("Hauptspeise"))
+        assertEquals("other", RecipeCategories.normalizeKey(null))
+    }
+
     @Test
     fun durationMinutes() {
         assertEquals(25, DurationFormat.minutes("PT25M"))
         assertEquals(70, DurationFormat.minutes("PT1H10M"))
         assertNull(DurationFormat.minutes(null))
         assertNull(DurationFormat.minutes("nonsense"))
+    }
+
+    @Test
+    fun arabicDigitsAreAQuantity() {
+        assertEquals(400.0, Numbers.parseQuantity("٤٠٠")!!, 1e-9)
+        assertEquals(1.5, Numbers.parseQuantity("١٫٥")!!, 1e-9)
+        assertEquals(2.0, Numbers.parseQuantity("۲")!!, 1e-9) // Persian/Urdu digit forms
     }
 }

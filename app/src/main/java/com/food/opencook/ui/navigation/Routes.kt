@@ -18,13 +18,13 @@
 
 package com.food.opencook.ui.navigation
 
+import android.net.Uri
+
 /**
  * Non-top-level routes layered into the same NavHost as the bottom-nav
  * [TopLevelDestination]s. The bottom bar is hidden while these are shown.
  */
 object Routes {
-    /** Add-a-recipe entry (take photo / pick gallery) — reached contextually, not a tab. */
-    const val SCAN = "scan"
     const val CAMERA = "camera"
 
     /** Camera opened from the review screen; returns the captured path to it. */
@@ -42,11 +42,22 @@ object Routes {
     /** The household's cooking history, opened from the top of the plan list. */
     const val RETROSPECT = "retrospect"
 
+    /** Curated starting points for browsing recipe sites, opened from the add-recipe screen. */
+    const val DISCOVER = "discover"
+
+    /** The in-app browser itself; [ARG_URL] is the page it starts on. */
+    const val ARG_URL = "url"
+    const val DISCOVER_WEB = "discover/web?$ARG_URL={$ARG_URL}"
+    fun discoverWeb(url: String) = "discover/web?$ARG_URL=${Uri.encode(url)}"
+
     /** Pick a recipe for one cell of the meal plan — a day *and* a meal (full list + search). */
     const val ARG_DATE = "date"
     const val ARG_SLOT = "slot"
-    const val PLAN_PICK = "plan_pick/{$ARG_DATE}/{$ARG_SLOT}"
-    fun planPick(date: String, slot: String) = "plan_pick/$date/$slot"
+    /** Set when the picker swaps one planned dish (the ↔ on its row); absent = add a dish. */
+    const val ARG_SWAP_ENTRY = "entry"
+    const val PLAN_PICK = "plan_pick/{$ARG_DATE}/{$ARG_SLOT}?$ARG_SWAP_ENTRY={$ARG_SWAP_ENTRY}"
+    fun planPick(date: String, slot: String, swapEntryId: String? = null) =
+        "plan_pick/$date/$slot?$ARG_SWAP_ENTRY=${swapEntryId.orEmpty()}"
 
     /** Result key set on the review back-stack entry by [REVIEW_CAMERA]. */
     const val RESULT_CAPTURED_PATH = "captured_path"
@@ -83,8 +94,8 @@ object Routes {
 
     /** Routes that should hide the bottom navigation bar (focused full-screen flow). */
     val fullScreenRoutes = setOf(
-        SCAN, CAMERA, REVIEW_CAMERA, REVIEW, RECIPE_DETAIL, EDIT, BARCODE_SCAN, PLAN_PICK,
-        BACKUP, RETROSPECT,
+        CAMERA, REVIEW_CAMERA, REVIEW, RECIPE_DETAIL, EDIT, BARCODE_SCAN, PLAN_PICK,
+        BACKUP, RETROSPECT, DISCOVER, DISCOVER_WEB,
         SETTINGS_HOUSEHOLD, SETTINGS_SYNC, SETTINGS_APPEARANCE, SETTINGS_ABOUT,
     )
 }

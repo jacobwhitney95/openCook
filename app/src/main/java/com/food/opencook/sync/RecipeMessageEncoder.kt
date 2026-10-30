@@ -66,6 +66,7 @@ object RecipeMessageEncoder {
         out += FieldChange(r, recipe.id, "tags", str(recipe.tags))
         out += FieldChange(r, recipe.id, "lastCookedAt", str(recipe.lastCookedAt))
         out += FieldChange(r, recipe.id, "cookbook", str(recipe.cookbook))
+        out += FieldChange(r, recipe.id, "sourceUrl", str(recipe.sourceUrl))
         // Provenance: the server job id whose original photo produced this recipe.
         // Synced so the recipe→original link survives reinstalls and reaches other devices.
         out += FieldChange(r, recipe.id, "sourcePhotoId", str(recipe.sourcePhotoId))

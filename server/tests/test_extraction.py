@@ -4,12 +4,16 @@ from io import BytesIO
 from PIL import Image
 
 from app.extraction import (
+    _CATEGORY_KEYS,
+    _I18N_DIR,
+    _MEAL_TYPE_KEYS,
     RecipeExtractor,
     _assign_boxes,
     _Box,
     _clean_step,
     _fix_title_case,
     _iso_duration,
+    _normalize_category,
     _normalize_meal_types,
     load_i18n,
     parse_json_lenient,
@@ -18,7 +22,7 @@ from app.extraction import (
 
 
 class FakeClient:
-    """Stand-in for a vision model: returns canned JSON based on the prompt."""
+    """Stand-in for VisionClient: returns canned JSON depending on the prompt."""
 
     async def generate(self, prompt: str, image_bytes: bytes) -> str:
         if "dish_photos" in prompt:
@@ -63,12 +67,50 @@ def test_normalize_meal_types():
 def test_load_i18n_unknown_language_falls_back_to_english():
     en = load_i18n("en")
     ja = load_i18n("ja")  # no ja.json yet → English catalog
-    assert ja.text_prompt == en.text_prompt
+    assert ja.language == "en"
+    assert ja.text_prompt() == en.text_prompt()
     assert ja.units == en.units
     # German is its own catalog; merged units are a superset of English.
     de = load_i18n("de")
-    assert de.text_prompt != en.text_prompt
+    assert de.language == "de"
+    assert de.text_prompt() != en.text_prompt()
     assert en.units <= de.units
+
+
+def test_every_catalog_carries_its_category_and_meal_aliases():
+    """A language catalog is only useful if it can map the words the model answers with.
+
+    English is the source (its own words *are* the keys), so it is exempt; every other
+    catalog must translate both alias tables, or French recipes silently land on "other"
+    with no meal type.
+    """
+    en = load_i18n("en")
+    for path in sorted(_I18N_DIR.glob("*.json")):
+        lang = path.stem
+        if lang == "en":
+            continue
+        i18n = load_i18n(lang)
+        extra_cats = set(i18n.category_aliases) - set(en.category_aliases)
+        extra_meals = set(i18n.meal_type_aliases) - set(en.meal_type_aliases)
+        assert extra_cats, f"{lang}.json has no category_aliases of its own"
+        assert extra_meals, f"{lang}.json has no meal_type_aliases of its own"
+        # Aliases may only point at the stable keys.
+        assert set(i18n.category_aliases.values()) <= set(_CATEGORY_KEYS)
+        assert set(i18n.meal_type_aliases.values()) <= set(_MEAL_TYPE_KEYS)
+
+
+def test_french_catalog_maps_french_words():
+    fr = load_i18n("fr")
+    assert _normalize_category("Viande", fr.category_aliases) == "meat"
+    assert _normalize_category("poisson", fr.category_aliases) == "fish"
+    assert _normalize_meal_types(["Petit-déjeuner", "goûter"], fr.meal_type_aliases) == [
+        "breakfast",
+        "snack",
+    ]
+    assert _iso_duration("1 heure 10 minutes", fr) == "PT70M"
+    # French measures stay in the unit vocabulary, English ones still merge in.
+    assert "c. à soupe" in fr.units
+    assert "tbsp" in fr.units
 
 
 def test_to_schema_org_coerces_non_numeric_quantity():
@@ -88,6 +130,32 @@ def test_to_schema_org_coerces_non_numeric_quantity():
     assert s["openCookIngredients"][0]["quantity"] is None
     assert s["openCookServings"] is None
     assert s["recipeYield"] is None
+
+
+def test_arabic_aliases_fold_article_and_spelling():
+    ar = load_i18n("ar")
+    # Article, hamza and ة variants all reach the plain alias.
+    assert _normalize_category("اللحوم", ar.category_aliases) == "meat"
+    assert _normalize_category("الحلويات", ar.category_aliases) == "dessert"
+    assert _normalize_meal_types(["الإفطار", "العشاء"], ar.meal_type_aliases) == ["breakfast", "dinner"]
+    # Latin categories are untouched by the fold.
+    assert _normalize_category("Meat", ar.category_aliases) == "meat"
+
+
+def test_to_schema_org_reads_arabic_digit_quantity():
+    recipe = {
+        "title": "Arabisch",
+        "ingredients": [
+            {"quantity": "٤٠٠", "unit": "غ", "name": "دقيق"},
+            {"quantity": "١٫٥", "unit": "كوب", "name": "ماء"},
+        ],
+        "servings": "٤",
+        "steps": [],
+    }
+    s = to_schema_org(recipe, [], i18n=load_i18n("ar"))
+    assert [i["quantity"] for i in s["openCookIngredients"]] == [400, 1.5]
+    assert s["openCookIngredients"][0]["unit"] == "غ"
+    assert s["openCookServings"] == 4
 
 
 def test_to_schema_org_drops_bogus_unit():
@@ -236,3 +304,34 @@ def test_extractor_end_to_end(tmp_path):
     # A dish crop was matched, written to disk and referenced on the recipe.
     assert recipes[0]["image"]
     assert (images_dir / recipes[0]["image"][0]).exists()
+
+
+def test_every_prompt_is_instructions_then_the_fixed_format():
+    """The format part carries the JSON the parser relies on; the instructions (the part
+    a server owner may replace) must not, or a replacement could drop it."""
+    for path in sorted(_I18N_DIR.glob("*.json")):
+        i18n = load_i18n(path.stem)
+        assert i18n.text_prompt() == f"{i18n.text_instructions}\n\n{i18n.text_format}"
+        assert '{"recipes"' in i18n.text_format and '{"recipes"' not in i18n.text_instructions
+        assert '{"dish_photos"' in i18n.box_format and '{"dish_photos"' not in i18n.box_instructions
+
+
+def test_custom_instructions_replace_only_the_instructions(tmp_path):
+    image = tmp_path / "page.jpg"
+    Image.new("RGB", (200, 150), (210, 210, 210)).save(image)
+    images_dir = tmp_path / "images"
+    images_dir.mkdir()
+    prompts: list[str] = []
+
+    class RecordingClient(FakeClient):
+        async def generate(self, prompt: str, image_bytes: bytes) -> str:
+            prompts.append(prompt)
+            return await super().generate(prompt, image_bytes)
+
+    recipes = asyncio.run(RecipeExtractor(RecordingClient(), images_dir).extract(
+        image, language="de", text_instructions="Lies nur fett Gedrucktes.",
+        box_instructions="Nur Fotos rechts.",
+    ))
+    de = load_i18n("de")
+    assert prompts == [f"Lies nur fett Gedrucktes.\n\n{de.text_format}", f"Nur Fotos rechts.\n\n{de.box_format}"]
+    assert recipes[0]["name"] == "Test Rezept"  # still parsed: the format part is intact

@@ -58,6 +58,7 @@ class BackupRoundTripTest {
             mealTypes = "breakfast\nsnack",
             lastCookedAt = "2026-07-01",
             cookbook = "Omas Küche",
+            sourceUrl = "https://www.chefkoch.de/rezepte/123/pfannkuchen.html",
             prepTime = "PT10M",
             cookTime = "PT20M",
             totalTime = "PT30M",
@@ -118,6 +119,8 @@ class BackupRoundTripTest {
         assertEquals(original.tags, out.tags)
         assertEquals(original.mealTypes, out.mealTypes)
         assertEquals(original.cookbook, out.cookbook)
+        // The source page travels as schema.org's own `url`.
+        assertEquals(original.sourceUrl, out.sourceUrl)
         assertEquals(original.lastCookedAt, out.lastCookedAt)
         assertEquals(original.prepTime, out.prepTime)
         assertEquals(original.cookTime, out.cookTime)

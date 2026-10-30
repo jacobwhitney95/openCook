@@ -21,6 +21,7 @@ package com.food.opencook.data.export
 import com.food.opencook.data.backup.RecipeDtoEncoder
 import com.food.opencook.data.local.relation.RecipeWithDetails
 import com.food.opencook.util.DurationFormat
+import com.food.opencook.util.SourceLink
 
 /**
  * Localized labels for the Markdown export. Resolved from string resources by
@@ -210,6 +211,8 @@ object RecipeMarkdown {
     private fun footer(details: RecipeWithDetails, labels: MarkdownLabels, exportDate: String?): String? {
         val parts = listOfNotNull(
             details.recipe.cookbook?.takeIf { it.isNotBlank() }?.let { labels.fromCookbookTemplate.format(it) },
+            // The original page as a Markdown link, named by its site: "[chefkoch.de](https://…)".
+            details.recipe.sourceUrl?.let { url -> SourceLink.host(url)?.let { "[$it]($url)" } },
             exportDate?.let { labels.exportedTemplate.format(it) },
         )
         if (parts.isEmpty()) return null

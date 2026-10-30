@@ -18,8 +18,12 @@
 
 package com.food.opencook
 
+import com.food.opencook.util.IngredientLexicon
 import com.food.opencook.util.IngredientMatch
+import com.food.opencook.util.IngredientStaples
 import com.food.opencook.util.LearnedIngredientLinks
+import com.food.opencook.util.TextFold
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -168,6 +172,15 @@ class IngredientMatchTest {
         assertFalse(IngredientMatch.matches("rote Paprika", "Paprika"))
     }
 
+    /** "Huile d\u2019olive" (typographic) and "huile d\'olive" (ASCII) are the same product. */
+    @Test
+    fun apostropheSpellingsCompareEqual() {
+        assertTrue(IngredientMatch.matches("Huile d\u2019olive", "huile d\'olive"))
+        assertTrue(IngredientMatch.containsLike(setOf("huile d\'olive"), "Huile d\u2019olive"))
+        // Still not the same as a different oil.
+        assertFalse(IngredientMatch.matches("huile d\'olive", "huile de noix"))
+    }
+
     @Test
     fun pantrySpecificDoesNotCoverGenericIngredient() {
         // The specific pantry stock can't satisfy a generic recipe request — the recipe
@@ -178,5 +191,70 @@ class IngredientMatchTest {
         assertFalse(IngredientMatch.covers("Salz", "schwarzer Pfeffer"))
         // Multi-word vs multi-word stays exact-only — no token gymnastics.
         assertFalse(IngredientMatch.covers("rote Paprika", "grüne Paprika"))
+    }
+
+    /**
+     * Installs an Arabic vocabulary next to the default one, folded like
+     * `LocalizedLists.unionFolded` does at runtime, and restores it afterwards.
+     */
+    private fun withArabic(block: () -> Unit) {
+        val vocabulary = IngredientMatch.activeVocabulary
+        val staples = IngredientStaples.ALL
+        val pantry = IngredientStaples.DEFAULT_PANTRY
+        val synonyms = IngredientLexicon.activeSynonyms
+        val distinctions = IngredientLexicon.activeDistinctions
+        fun fold(vararg words: String) = words.map(TextFold::forMatch)
+        try {
+            IngredientMatch.setVocabulary(
+                vocabulary.copy(
+                    leadingNoise = vocabulary.leadingNoise + fold("رشة من"),
+                    pluralSuffixes = vocabulary.pluralSuffixes + "ات",
+                ),
+            )
+            IngredientStaples.setData(staples + fold("ملح", "فلفل", "زيت"), pantry)
+            IngredientLexicon.setData(
+                synonyms = synonyms + listOf(fold("طماطم", "بندورة").toSet()),
+                distinct = distinctions + listOf(
+                    TextFold.forMatch("فلفل رومي") to TextFold.forMatch("فلفل"),
+                    TextFold.forMatch("زيت السمسم") to TextFold.forMatch("زيت"),
+                ),
+            )
+            block()
+        } finally {
+            IngredientMatch.setVocabulary(vocabulary)
+            IngredientStaples.setData(staples, pantry)
+            IngredientLexicon.setData(synonyms, distinctions)
+        }
+    }
+
+    @Test
+    fun arabicFoldUnifiesSpellingsAndLeavesLatinAlone() {
+        assertEquals(TextFold.forMatch("ارز"), TextFold.forMatch("الأرز"))
+        assertEquals(TextFold.forMatch("سكر"), TextFold.forMatch("سُكَّر"))
+        assertEquals(TextFold.forMatch("علبه"), TextFold.forMatch("علبة"))
+        assertEquals("schwarzer pfeffer", TextFold.forMatch("Schwarzer Pfeffer"))
+    }
+
+    @Test
+    fun arabicSpellingVariantsAreTheSameIngredient() = withArabic {
+        assertTrue(IngredientMatch.matches("الأرز", "ارز"))
+        assertTrue(IngredientMatch.matches("طماطم", "البندورة"))
+        assertTrue(IngredientStaples.isStaple("رشة من الملح"))
+        // Sound feminine plural ة → ات, and the plain ات plural.
+        assertTrue(IngredientMatch.matches("حبة", "حبات"))
+        assertTrue(IngredientMatch.matches("معلب", "معلبات"))
+    }
+
+    /** Arabic puts the head first, with no connector marking the modifier. */
+    @Test
+    fun arabicHeadNounComesFirst() = withArabic {
+        assertTrue(IngredientMatch.covers("فلفل", "فلفل أسود"))
+        assertTrue(IngredientMatch.covers("زيت", "زيت الزيتون"))
+        assertFalse(IngredientMatch.covers("فلفل", "فلفل رومي"))
+        assertFalse(IngredientMatch.covers("زيت", "زيت السمسم"))
+        // Olives are no oil, and "salted" is no salt — Arabic doesn't build compounds.
+        assertFalse(IngredientMatch.covers("زيت", "زيتون"))
+        assertFalse(IngredientMatch.matches("ملح", "مملح"))
+        assertTrue(IngredientMatch.covers("Pfeffer", "schwarzer Pfeffer"))
     }
 }

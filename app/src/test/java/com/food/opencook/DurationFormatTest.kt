@@ -24,15 +24,28 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
-import java.util.Locale
 
 class DurationFormatTest {
 
-    private val originalLocale = Locale.getDefault()
+    // The unit words and labels come from arrays.xml/strings.xml at runtime; a JVM test seeds
+    // them itself. Parsing always accepts every language at once — that is the point of the
+    // union — while the label is whatever the phone's language writes.
+    private val hourWords = listOf("stunden", "stunde", "std", "h", "heures", "heure", "hours", "hour", "ساعات", "ساعة")
+    private val minuteWords = listOf("minuten", "minute", "min", "m", "minutes", "mn", "mins", "دقائق", "دقيقة")
 
-    // toHuman() localizes its unit labels to the default locale; pin it for deterministic assertions.
-    @Before fun setGerman() = Locale.setDefault(Locale.GERMAN)
-    @After fun restore() = Locale.setDefault(originalLocale)
+    @Before fun german() {
+        DurationFormat.setUnits(hourWords, minuteWords)
+        // On a device this is android.icu MeasureFormat in the device locale; here a stand-in,
+        // so the assertions stay about *our* logic and not about ICU's wording.
+        DurationFormat.setRenderer { h, m -> render(h, m, "Std", "Min") }
+    }
+
+    @After fun restore() = DurationFormat.setRenderer { h, m -> render(h, m, "h", "min") }
+
+    private fun render(h: Int, m: Int, hLabel: String, mLabel: String) = listOfNotNull(
+        h.takeIf { it > 0 }?.let { "$it $hLabel" },
+        m.takeIf { it > 0 }?.let { "$it $mLabel" },
+    ).joinToString(" ")
 
     @Test
     fun isoToHuman() {
@@ -45,7 +58,7 @@ class DurationFormatTest {
 
     @Test
     fun isoToHumanEnglishLocale() {
-        Locale.setDefault(Locale.ENGLISH)
+        DurationFormat.setRenderer { h, m -> render(h, m, "h", "min") }
         assertEquals("25 min", DurationFormat.toHuman("PT25M"))
         assertEquals("1 h", DurationFormat.toHuman("PT1H"))
         assertEquals("1 h 10 min", DurationFormat.toHuman("PT1H10M"))
@@ -73,8 +86,19 @@ class DurationFormatTest {
 
     @Test
     fun secondBasedDurationEnglishLocale() {
-        Locale.setDefault(Locale.ENGLISH)
+        DurationFormat.setRenderer { h, m -> render(h, m, "h", "min") }
         assertEquals("15 min", DurationFormat.toHuman("PT900S"))
+    }
+
+    /** Parsing takes every bundled language at once: a German recipe read on an English phone
+     *  still has to round-trip, and a French one on either. */
+    @Test
+    fun humanToIsoAcceptsEveryLanguage() {
+        assertEquals("PT90M", DurationFormat.toIso("1 heure 30 minutes"))
+        assertEquals("PT45M", DurationFormat.toIso("45 mn"))
+        assertEquals("PT130M", DurationFormat.toIso("2 hours 10 mins"))
+        // The longest word wins, so "minutes" is not cut short by "min".
+        assertEquals("PT20M", DurationFormat.toIso("20 minutes"))
     }
 
     @Test
@@ -100,5 +124,52 @@ class DurationFormatTest {
     fun roundTrips() {
         assertEquals("PT25M", DurationFormat.toIso(DurationFormat.toHuman("PT25M")))
         assertEquals("PT70M", DurationFormat.toIso(DurationFormat.toHuman("PT1H10M")))
+    }
+
+    // --- Cooking times inside a recipe step (the detail screen's timer links) -------------
+
+    private fun found(text: String) = DurationFormat.findIn(text).map { text.substring(it.range) to it.seconds }
+
+    /** Arabic-Indic digits are folded one-for-one, so the timer range still marks the original text. */
+    @Test
+    fun arabicDigitsInAStep() {
+        assertEquals(listOf("١٠ دقائق" to 600), found("اطبخ لمدة ١٠ دقائق"))
+        assertEquals("PT90M", DurationFormat.toIso("١ ساعة ٣٠ دقيقة"))
+    }
+
+    @Test
+    fun findsMinutesAndHoursInAStep() {
+        assertEquals(listOf("10 Minuten" to 600), found("Nudeln 10 Minuten kochen."))
+        assertEquals(listOf("2 hours" to 7200), found("Simmer for 2 hours, stirring."))
+    }
+
+    @Test
+    fun hoursAndMinutesAreOneTimer() {
+        assertEquals(listOf("1 Std. 30 Min" to 5400), found("1 Std. 30 Min. köcheln lassen."))
+    }
+
+    @Test
+    fun severalTimesInOneStepAreSeparate() {
+        assertEquals(
+            listOf("5 min" to 300, "20 min" to 1200),
+            found("Zwiebeln 5 min anbraten, dann 20 min schmoren."),
+        )
+    }
+
+    @Test
+    fun aRangeStartsAtItsFirstValue() {
+        assertEquals(listOf("10–12 Minuten" to 600), found("10–12 Minuten backen."))
+    }
+
+    @Test
+    fun aDecimalIsTakenWhole() {
+        assertEquals(listOf("1,5 Stunden" to 5400), found("1,5 Stunden ruhen lassen."))
+    }
+
+    @Test
+    fun unitsInsideOtherWordsAreNoTime() {
+        // "ml" starts with m, "Hähnchen" with h — neither is a minute or an hour.
+        assertEquals(emptyList<Pair<String, Int>>(), found("200 ml Milch und 4 Hähnchenschenkel"))
+        assertEquals(emptyList<Pair<String, Int>>(), found("Bei 180 Grad backen."))
     }
 }

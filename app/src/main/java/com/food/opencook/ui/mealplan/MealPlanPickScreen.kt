@@ -81,6 +81,8 @@ fun MealPlanPickScreen(
     date: String,
     slot: String,
     onBack: () -> Unit,
+    /** The dish being swapped (its row's ↔); null = add a dish to the meal. */
+    swapEntryId: String? = null,
     recipesViewModel: RecipesViewModel = hiltViewModel(),
     mealPlanViewModel: MealPlanViewModel = hiltViewModel(),
 ) {
@@ -250,6 +252,7 @@ fun MealPlanPickScreen(
                                         mealPlanViewModel.choose(
                                             date, slot, proposed.recipe.id,
                                             suggestion?.reasons.orEmpty(),
+                                            entryId = swapEntryId,
                                         )
                                         onBack()
                                     },
@@ -275,7 +278,7 @@ fun MealPlanPickScreen(
                             imageModel = imageModelFor(recipe.images, baseUrl),
                             liked = recipe.recipe.id in likedIds,
                             onClick = {
-                                mealPlanViewModel.choose(date, slot, recipe.recipe.id)
+                                mealPlanViewModel.choose(date, slot, recipe.recipe.id, entryId = swapEntryId)
                                 onBack()
                             },
                         )

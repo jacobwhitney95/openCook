@@ -66,6 +66,7 @@ fun PantryItemEntity.toBackup() = PantryItemBackup(
     name = name,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    basic = basic,
 )
 
 fun PantryItemBackup.toEntity() = PantryItemEntity(
@@ -73,6 +74,7 @@ fun PantryItemBackup.toEntity() = PantryItemEntity(
     name = name,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    basic = basic,
 )
 
 fun GroceryOverrideEntity.toBackup() = GroceryOverrideBackup(

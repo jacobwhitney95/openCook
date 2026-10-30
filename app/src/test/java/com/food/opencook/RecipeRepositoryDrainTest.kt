@@ -43,6 +43,7 @@ import com.food.opencook.data.remote.dto.CreateJobResponseDto
 import com.food.opencook.data.remote.dto.JobResponseDto
 import com.food.opencook.data.remote.dto.RecipeDto
 import com.food.opencook.repository.DrainOutcome
+import com.food.opencook.repository.MealPlanRepository
 import com.food.opencook.repository.PantryRepository
 import com.food.opencook.repository.RecipeRepository
 import com.food.opencook.repository.SaveResult
@@ -135,6 +136,8 @@ private class FakeRecipeDao : RecipeDao {
         images.removeAll { it.recipeId == recipeId }
     }
     override fun observeAll(): Flow<List<RecipeWithDetails>> = throw NotImplementedError()
+    override fun observeAllListItems(): Flow<List<com.food.opencook.data.local.relation.RecipeListItem>> =
+        throw NotImplementedError()
     override fun observeById(id: String): Flow<RecipeWithDetails?> = throw NotImplementedError()
     override suspend fun getByIdOnce(id: String): RecipeWithDetails? =
         recipes.firstOrNull { it.id == id }?.let { recipe ->
@@ -147,6 +150,7 @@ private class FakeRecipeDao : RecipeDao {
             )
         }
     override suspend fun getAllOnce(): List<RecipeWithDetails> = emptyList()
+    override suspend fun getAllListItemsOnce(): List<com.food.opencook.data.local.relation.RecipeListItem> = emptyList()
     override suspend fun pageWithDetails(limit: Int, offset: Int): List<RecipeWithDetails> = emptyList()
     override suspend fun recipeCount(): Int = recipes.size
     override suspend fun ingredientIdsFor(recipeId: String): List<String> = ingredients.filter { it.recipeId == recipeId }.map { it.id }
@@ -169,6 +173,8 @@ private class FakeRecipeDao : RecipeDao {
     override suspend fun distinctIngredientNames(): List<String> = ingredients.map { it.name }.distinct()
     override suspend fun allIdAndNames(): List<com.food.opencook.data.local.dao.RecipeIdName> =
         recipes.map { com.food.opencook.data.local.dao.RecipeIdName(it.id, it.name) }
+    override fun observeIdAndNames(): Flow<List<com.food.opencook.data.local.dao.RecipeIdName>> =
+        throw NotImplementedError()
 }
 
 private class FakeRecipeLikeDao : com.food.opencook.data.local.dao.RecipeLikeDao {
@@ -184,7 +190,7 @@ private class FakeRecipeLikeDao : com.food.opencook.data.local.dao.RecipeLikeDao
         kotlinx.coroutines.flow.flowOf(likes.filter { it.liked }.map { it.recipeId }.distinct())
 }
 
-private class FakeMessageDao : MessageDao {
+internal class FakeMessageDao : MessageDao {
     val messages = mutableListOf<MessageEntity>()
     override suspend fun insert(message: MessageEntity) {
         if (messages.none { it.timestamp == message.timestamp }) messages += message
@@ -204,7 +210,7 @@ private class FakeMessageDao : MessageDao {
 }
 
 /** Deterministic stamper: strictly increasing timestamps. */
-private class FakeStamper : Stamper {
+internal class FakeStamper : Stamper {
     private var n = 0L
     override suspend fun stamp(): Hlc = Hlc(1_000 + n++, 0, "T")
 }
@@ -267,6 +273,7 @@ class RecipeRepositoryDrainTest {
             importCorrector = { it },
             shoppingRepository = ShoppingRepository(noopShoppingDao, recorder, pantryRepo),
             pantryRepository = pantryRepo,
+            mealPlanRepository = MealPlanRepository(FakeMealPlanDao(), FakeMealDayDao(), recorder),
             contentLanguage = { "de" },
         )
     }

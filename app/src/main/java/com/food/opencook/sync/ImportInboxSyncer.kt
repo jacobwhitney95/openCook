@@ -93,6 +93,7 @@ class ImportInboxSyncer @Inject constructor(
         // cookbook via schema.org isPartOf — that always wins.
         val dto = parsed.copy(
             cookbook = parsed.cookbook?.takeIf { it.isNotBlank() } ?: SourceCookbook.fromUrl(sourceUrl),
+            url = parsed.url ?: sourceUrl,
         )
         val mapped = dto.toMappedRecipe(sourcePhotoId = null, now = now)
         val images = imageName?.let {

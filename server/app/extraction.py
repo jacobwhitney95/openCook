@@ -7,9 +7,11 @@ Boxes are matched to recipes by title and the dish images are cropped from the
 original (full-resolution) photo with Pillow.
 
 Lessons baked in (see memory/extraction-model.md):
-  - the box prompt requests absolute pixel coords in the sent image space, so
-    the image is resized once and reused for both model calls.
-  - Providers differ in JSON-mode support -> we parse responses leniently.
+  - qwen returns absolute pixel coords in the SENT image space -> the image is
+    resized once to a controlled size (multiple of 28) so coords map 1:1, and
+    both model calls reuse it.
+  - JSON mode is requested but not guaranteed, and providers differ in support
+    -> we parse responses leniently.
 """
 
 import difflib
@@ -25,11 +27,27 @@ from pathlib import Path
 
 from PIL import Image, ImageOps
 
-from app.ai_client import VisionModelClient
+from app.vision_client import VisionClient
 
 logger = logging.getLogger(__name__)
 
 SENT_LONG_SIDE = 1008  # multiple of 28; validated with the original vision prompts
+
+
+# Arabic spelling variants, folded for word-list lookups (mirror of the app's TextFold):
+# optional vowel marks and tatweel go, hamza-alef forms / ى / ة collapse, and the article
+# "ال" is dropped from a word's start — so "اللحوم" still finds the alias "لحوم".
+_AR_MARKS_RE = re.compile("[\u064B-\u065F\u0670\u0640]")
+_AR_ARTICLE_RE = re.compile(r"(?<!\w)ال(?=\w{2})")
+_AR_LETTERS = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ٱ": "ا", "ى": "ي", "ة": "ه"})
+
+
+def _fold(s: str) -> str:
+    """Lower-case ``s`` and fold Arabic spelling variants; Latin text is only lower-cased."""
+    t = s.strip().lower()
+    if not any("\u0600" <= c <= "\u06FF" for c in t):
+        return t
+    return _AR_ARTICLE_RE.sub("", _AR_MARKS_RE.sub("", t).translate(_AR_LETTERS))
 
 
 # Stable category keys (universal across languages; mirror of the app's RecipeCategories).
@@ -44,15 +62,37 @@ _I18N_DIR = Path(__file__).parent / "i18n"
 
 @dataclass(frozen=True)
 class I18n:
-    """Localized extraction resources for one content language (see app/i18n/*.json)."""
+    """Localized extraction resources for one content language (see app/i18n/*.json).
 
-    text_prompt: str
-    box_prompt: str
+    Each prompt is two parts: *instructions* (how to read the page) and *format* (the
+    JSON the parser relies on). A server owner may replace the instructions from the
+    admin console; the format is always appended as built, so an edited prompt can't
+    break parsing — and format fixes still reach a server with custom instructions.
+    """
+
+    language: str  # the catalog actually loaded ("en" when the language has none)
+    text_instructions: str
+    text_format: str
+    box_instructions: str
+    box_format: str
     duration_hours: tuple[str, ...]
     duration_minutes: tuple[str, ...]
     units: frozenset[str]
     category_aliases: dict[str, str]
     meal_type_aliases: dict[str, str]
+
+    def text_prompt(self, instructions: str | None = None) -> str:
+        """The recipe-text prompt; [instructions] replaces the built-in ones if given."""
+        return f"{instructions or self.text_instructions}\n\n{self.text_format}"
+
+    def box_prompt(self, instructions: str | None = None) -> str:
+        """The dish-photo prompt; [instructions] replaces the built-in ones if given."""
+        return f"{instructions or self.box_instructions}\n\n{self.box_format}"
+
+
+def catalog_languages() -> list[str]:
+    """Every content language with its own catalog in app/i18n/."""
+    return sorted(p.stem for p in _I18N_DIR.glob("*.json"))
 
 
 def _read_catalog(lang: str) -> dict:
@@ -67,6 +107,8 @@ def load_i18n(language: str | None) -> I18n:
     """Load extraction resources for ``language`` (e.g. "de"/"en"); unknown → English.
     Units/durations/aliases are unioned with English so universal tokens always match."""
     lang = (language or "en").strip().lower()[:2]
+    if not (_I18N_DIR / f"{lang}.json").is_file():
+        lang = "en"
     base = _read_catalog("en")
     data = base if lang == "en" else _read_catalog(lang)
 
@@ -74,18 +116,21 @@ def load_i18n(language: str | None) -> I18n:
         return list(dict.fromkeys([*base.get(key, []), *data.get(key, [])]))
 
     return I18n(
-        text_prompt=data.get("text_prompt") or base["text_prompt"],
-        box_prompt=data.get("box_prompt") or base["box_prompt"],
+        language=lang,
+        text_instructions=data.get("text_instructions") or base["text_instructions"],
+        text_format=data.get("text_format") or base["text_format"],
+        box_instructions=data.get("box_instructions") or base["box_instructions"],
+        box_format=data.get("box_format") or base["box_format"],
         duration_hours=tuple(merged("duration_hours")),
         duration_minutes=tuple(merged("duration_minutes")),
-        units=frozenset(u.lower() for u in merged("units")),
+        units=frozenset(_fold(u) for u in merged("units")),
         category_aliases={
-            **{k.lower(): v for k, v in base.get("category_aliases", {}).items()},
-            **{k.lower(): v for k, v in data.get("category_aliases", {}).items()},
+            **{_fold(k): v for k, v in base.get("category_aliases", {}).items()},
+            **{_fold(k): v for k, v in data.get("category_aliases", {}).items()},
         },
         meal_type_aliases={
-            **{k.lower(): v for k, v in base.get("meal_type_aliases", {}).items()},
-            **{k.lower(): v for k, v in data.get("meal_type_aliases", {}).items()},
+            **{_fold(k): v for k, v in base.get("meal_type_aliases", {}).items()},
+            **{_fold(k): v for k, v in data.get("meal_type_aliases", {}).items()},
         },
     )
 
@@ -94,7 +139,7 @@ def _normalize_category(raw: object, aliases: dict[str, str]) -> str | None:
     """Map a model category (any language/case) to a stable key; unknown → "other"."""
     if not isinstance(raw, str) or not raw.strip():
         return None
-    t = raw.strip().lower()
+    t = _fold(raw)
     if t in _CATEGORY_KEYS:
         return t
     return aliases.get(t, "other")
@@ -111,7 +156,7 @@ def _normalize_meal_types(raw: object, aliases: dict[str, str]) -> list[str]:
     for item in items:
         if not isinstance(item, str) or not item.strip():
             continue
-        t = item.strip().lower()
+        t = _fold(item)
         key = t if t in _MEAL_TYPE_KEYS else aliases.get(t)
         if key in _MEAL_TYPE_KEYS and key not in out:
             out.append(key)
@@ -198,7 +243,7 @@ def _assign_boxes(recipe_titles: list[str], boxes: list[_Box]) -> dict[int, _Box
 
 
 class RecipeExtractor:
-    def __init__(self, client: VisionModelClient, images_dir: Path) -> None:
+    def __init__(self, client: VisionClient, images_dir: Path) -> None:
         self._client = client
         self._images_dir = images_dir
 
@@ -207,10 +252,13 @@ class RecipeExtractor:
         image_path: Path,
         on_stage: Callable[[str], None] | None = None,
         language: str | None = None,
+        text_instructions: str | None = None,
+        box_instructions: str | None = None,
     ) -> list[dict]:
         """Extract recipes. ``on_stage`` (if given) is called with a coarse stage
         key before each model call, so callers can surface progress. ``language``
-        (e.g. "de"/"en") selects the extraction prompt."""
+        (e.g. "de"/"en") selects the extraction prompt; ``text_instructions`` /
+        ``box_instructions`` replace its built-in instructions (see [I18n])."""
         def stage(name: str) -> None:
             if on_stage is not None:
                 on_stage(name)
@@ -225,13 +273,13 @@ class RecipeExtractor:
 
         i18n = load_i18n(language)
         stage("reading_text")
-        text_raw = await self._client.generate(i18n.text_prompt, sent_bytes)
+        text_raw = await self._client.generate(i18n.text_prompt(text_instructions), sent_bytes)
         recipes = parse_json_lenient(text_raw).get("recipes", [])
 
         boxes: list[_Box] = []
         try:
             stage("detecting_photos")
-            box_raw = await self._client.generate(i18n.box_prompt, sent_bytes)
+            box_raw = await self._client.generate(i18n.box_prompt(box_instructions), sent_bytes)
             boxes = _parse_boxes(box_raw, sent.size)
         except Exception:  # noqa: BLE001 - cropping is best-effort, never fatal
             logger.warning("Dish-photo detection failed; recipes saved without images.")
@@ -327,10 +375,19 @@ def _num(value: object) -> float | int | None:
     The model occasionally emits a non-numeric ``quantity`` (e.g. it shoves the
     name in: ``"quantity": "Salz"``). Letting that through crashed flatten() and
     would also break the app's ``Double?`` parser, failing the whole job — so any
-    non-number becomes null.
+    non-number becomes null. A number *string* is read, including Arabic-Indic
+    digits ("٤٠٠", "1٫5") — ``float`` understands any Unicode decimal digit.
     """
     if isinstance(value, bool):  # bool is an int subclass; never a quantity
         return None
+    if isinstance(value, str):
+        try:
+            n = float(value.strip().replace("\u066b", ".").replace(",", "."))
+        except ValueError:
+            return None
+        if n != n or n in (float("inf"), float("-inf")):  # "nan"/"inf" parse, but aren't amounts
+            return None
+        return int(n) if n.is_integer() else n
     return value if isinstance(value, (int, float)) else None
 
 
@@ -348,7 +405,7 @@ def _clean_unit(unit: object, name: object, known_units: frozenset[str]) -> str 
     if not u:
         return None
     ul, nl = u.lower(), (name or "").strip().lower() if isinstance(name, str) else ""
-    if ul in known_units:
+    if _fold(u) in known_units:
         return u
     if nl and (ul in nl or nl in ul):
         return None

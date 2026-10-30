@@ -101,6 +101,9 @@ data class HouseholdSettings(
     /** Which meals of the day the household plans, as newline-joined MealTypes keys
      *  ("lunch\ndinner"). null = never configured → the planner's single-slot default. */
     @SerialName("planned_meals") val plannedMeals: String? = null,
+    /** Whether a meal may hold more than one dish (added by hand — the planner still fills
+     *  one). null = a peer/server that predates the option → keep the local value. */
+    @SerialName("multi_dish_meals") val multiDishMeals: Boolean? = null,
 )
 
 /** Returned to the device that creates/joins — carries the sync credential. */
@@ -208,6 +211,8 @@ data class RecipeDto(
     val nutrition: NutritionDto? = null,
     /** Source cookbook name (openCook extension; schema.org/Recipe has no such property). */
     val cookbook: String? = null,
+    /** The page the recipe lives on — schema.org `url` (inherited from Thing). */
+    val url: String? = null,
     /** ISO date this recipe was last cooked (openCook extension; backup round-trip). */
     val openCookLastCookedAt: String? = null,
     /** Epoch millis of creation/last edit (openCook extension; backup round-trip). */

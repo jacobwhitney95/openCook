@@ -22,12 +22,16 @@ import com.food.opencook.data.remote.dto.HowToStepDto
 import com.food.opencook.data.remote.dto.IngredientDto
 import com.food.opencook.data.remote.dto.NutritionDto
 import com.food.opencook.data.remote.dto.RecipeDto
+import com.food.opencook.util.RecipeCategories
+import com.food.opencook.util.SourceLink
+import com.food.opencook.util.TextFold
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 /**
  * Parses imported recipe JSON into [RecipeDto]s (which the existing mapper turns into
@@ -52,7 +56,35 @@ object RecipeImportParser {
     /** Parse [jsonText]; returns the valid recipes found (invalid/foreign entries dropped). */
     fun parse(jsonText: String, json: Json): List<RecipeDto> {
         val root = json.parseToJsonElement(jsonText)
-        return collectRecipeObjects(root).mapNotNull { toRecipeDto(it) }
+        val byId = indexById(root)
+        return collectRecipeObjects(root).mapNotNull { toRecipeDto(it, byId) }
+    }
+
+    /**
+     * Addresses in the document, keyed by `@id`, so a reference can be followed. JSON-LD graphs
+     * routinely split a recipe from its photo: the recipe holds
+     * `"image": {"@id": "…#primaryimage"}` and a sibling `ImageObject` node holds the real URL.
+     *
+     * Only nodes that actually carry a `url`/`contentUrl` are indexed — the pointer
+     * `{"@id": "…"}` inside the recipe wears the *same* id, and indexing it too would resolve
+     * the reference to itself.
+     */
+    private fun indexById(element: JsonElement): Map<String, String> {
+        val out = LinkedHashMap<String, String>()
+        fun walk(e: JsonElement) {
+            when (e) {
+                is JsonArray -> e.forEach(::walk)
+                is JsonObject -> {
+                    val id = e.firstString("@id")
+                    val url = e.firstString("url", "contentUrl")
+                    if (id != null && url != null) out.putIfAbsent(id, url)
+                    e.values.forEach(::walk)
+                }
+                else -> Unit
+            }
+        }
+        walk(element)
+        return out
     }
 
     private fun collectRecipeObjects(element: JsonElement): List<JsonObject> = when (element) {
@@ -67,7 +99,7 @@ object RecipeImportParser {
         else -> emptyList()
     }
 
-    private fun toRecipeDto(obj: JsonObject): RecipeDto? {
+    private fun toRecipeDto(obj: JsonObject, byId: Map<String, String>): RecipeDto? {
         val name = obj.firstString("name", "Name", "headline", "title")?.trim()
         val instructions = extractInstructions(obj)
         // Our own backups carry the structured list verbatim (lossless, with row ids);
@@ -78,6 +110,8 @@ object RecipeImportParser {
         if (name.isNullOrBlank() || (structured.isEmpty() && instructions.isEmpty())) return null
 
         val yieldStr = obj.firstString("recipeYield", "yield", "Portionen", "servings")
+        // Our own backup key first, then the site's schema.org category (see [schemaCategory]).
+        val category = obj.firstString("openCookCategory") ?: schemaCategory(obj)
         return RecipeDto(
             identifier = obj.firstString("identifier"),
             name = name,
@@ -85,18 +119,19 @@ object RecipeImportParser {
             recipeYield = yieldStr,
             openCookServings = obj.first("openCookServings")?.str()?.toIntOrNull()
                 ?: yieldStr?.let(::leadingInt),
-            openCookCategory = obj.firstString("openCookCategory"),
+            openCookCategory = category,
             openCookIngredients = structured,
             recipeInstructions = instructions,
-            image = extractImages(obj), // refs resolved by the import flow (data-URI / zip path / http)
+            image = extractImages(obj, byId), // refs resolved by the import flow (data-URI / zip path / http)
             openCookNotes = extractStringList(obj, "openCookNotes"),
-            openCookTags = extractTags(obj),
+            openCookTags = extractTags(obj, category),
             openCookMealTypes = extractStringList(obj, "openCookMealTypes"),
             prepTime = obj.firstString("prepTime")?.takeIf { it.startsWith("PT") },
             cookTime = obj.firstString("cookTime")?.takeIf { it.startsWith("PT") },
             totalTime = obj.firstString("totalTime")?.takeIf { it.startsWith("PT") },
             nutrition = extractNutrition(obj),
             cookbook = extractCookbook(obj),
+            url = extractPageUrl(obj),
             openCookLastCookedAt = obj.firstString("openCookLastCookedAt"),
             openCookCreatedAt = obj.firstString("openCookCreatedAt")?.toLongOrNull(),
             openCookUpdatedAt = obj.firstString("openCookUpdatedAt")?.toLongOrNull(),
@@ -123,6 +158,18 @@ object RecipeImportParser {
 
     private fun extractStringList(obj: JsonObject, key: String): List<String> =
         (obj[key] as? JsonArray)?.mapNotNull { it.str()?.trim() }?.filter { it.isNotEmpty() }.orEmpty()
+
+    /** The recipe's own page: schema.org `url`, else `mainEntityOfPage` (a URL or a
+     *  WebPage with an `@id`/`url`). Only http(s) — anything else is no link to open. */
+    private fun extractPageUrl(obj: JsonObject): String? {
+        val page = obj["mainEntityOfPage"]
+        val candidates = listOfNotNull(
+            obj.firstString("url"),
+            (page as? JsonPrimitive)?.contentOrNull,
+            (page as? JsonObject)?.let { it.firstString("@id") ?: it.firstString("url") },
+        )
+        return candidates.map { it.trim() }.firstOrNull { SourceLink.isWebUrl(it) }
+    }
 
     /** Source cookbook from schema.org `isPartOf` (a Book/CreativeWork) — its `name`,
      *  or a bare string. schema.org/Recipe has no dedicated cookbook property, so this
@@ -172,7 +219,13 @@ object RecipeImportParser {
                     } else {
                         val text = e.firstString("text", "name", "step", "description")
                         if (text != null) {
-                            steps += HowToStepDto(text = text, openCookId = e.firstString("openCookId"))
+                            // A step of ours carries its row id and stays one step. A foreign one
+                            // may have held <br>/<li> markup, now newlines: those become separate
+                            // steps, exactly like the lines of a plain-string import, so the
+                            // numbered list on the detail screen keeps one line per number.
+                            val id = e.firstString("openCookId")
+                            if (id != null) steps += HowToStepDto(text = text, openCookId = id)
+                            else text.toLines().forEach { steps += HowToStepDto(text = it) }
                         } else {
                             e.first("itemListElement")?.let(::add)
                         }
@@ -205,25 +258,58 @@ object RecipeImportParser {
             .ifEmpty { listOf(text.trim()) }
     }
 
-    private fun extractTags(obj: JsonObject): List<String> {
+    private fun extractTags(obj: JsonObject, category: String?): List<String> {
         // openCookTags first: our own backups write the tag list verbatim there, while
         // foreign recipes only have the schema.org keyword-ish fields.
         val el = obj.first("openCookTags", "keywords", "recipeCategory", "recipeCuisine") ?: return emptyList()
-        return when (el) {
-            is JsonArray -> el.mapNotNull { it.str()?.trim() }.filter { it.isNotEmpty() }
-            is JsonPrimitive -> el.str()?.split(",")?.map(String::trim)?.filter(String::isNotEmpty).orEmpty()
-            else -> emptyList()
-        }
+        // Drop the word that became the category — "Dessert" as both is noise. Anything we did
+        // not recognise ("Plat principal") stays a tag, so nothing from the page is lost.
+        val key = RecipeCategories.matchKeyOrNull(category) ?: return wordList(el)
+        return wordList(el).filterNot { RecipeCategories.matchKeyOrNull(it) == key }
+    }
+
+    /** The site's schema.org `recipeCategory` as one of our keys, or null. Sites write this
+     *  field freely ("Dessert", "Plat principal", "Hauptspeise, Vegetarisch"), so only a value
+     *  the localized alias lists actually know becomes the category — an unrecognised one leaves
+     *  the recipe uncategorized rather than pretending it is "other". `recipeCuisine`
+     *  ("Italian") is deliberately not consulted: it answers a different question. */
+    private fun schemaCategory(obj: JsonObject): String? =
+        obj.first("recipeCategory")
+            ?.let(::wordList)
+            ?.firstNotNullOfOrNull { RecipeCategories.matchKeyOrNull(it) }
+
+    /** A schema.org keyword-ish field as a list: an array, or one string holding a comma list. */
+    private fun wordList(el: JsonElement): List<String> = when (el) {
+        is JsonArray -> el.mapNotNull { it.str()?.trim() }.filter { it.isNotEmpty() }
+        is JsonPrimitive -> el.str()?.split(",")?.map(String::trim)?.filter(String::isNotEmpty).orEmpty()
+        else -> emptyList()
     }
 
     /** Image reference(s): schema.org `image` as a string, an array, or an ImageObject
      *  ({url}/{contentUrl}). Returned verbatim (data-URI / relative path / http URL); the
      *  import flow decides how to resolve each. */
-    private fun extractImages(obj: JsonObject): List<String> {
+    private fun extractImages(obj: JsonObject, byId: Map<String, String>): List<String> {
+        /**
+         * Follows a reference into the document's own graph. Without this, Chefkoch's
+         * `{"@id": "https://…/rezept.html#primaryimage"}` would be taken for an image address
+         * and the import would happily download the **HTML page** and store it as the photo —
+         * the fragment is dropped by the request, so it even answers 200.
+         */
+        fun resolve(ref: String): String? {
+            val target = byId[ref] ?: ref.takeIf { !it.contains('#') }
+            // A dangling same-document reference points at nothing we can fetch.
+                ?: return null
+            // "//cdn.example/bild.png" inherits the page's scheme in a browser, but the importer
+            // asks for it on its own and would just throw. Give it the scheme it means.
+            return if (target.startsWith("//")) "https:$target" else target
+        }
         fun refs(e: JsonElement): List<String> = when (e) {
             is JsonArray -> e.flatMap { refs(it) }
-            is JsonObject -> listOfNotNull(e.firstString("url", "contentUrl", "@id"))
-            is JsonPrimitive -> listOfNotNull(e.str()?.trim()?.takeIf { it.isNotEmpty() })
+            is JsonObject -> listOfNotNull(
+                e.firstString("url", "contentUrl") ?: e.firstString("@id")?.let(::resolve),
+            )
+            is JsonPrimitive ->
+                listOfNotNull(e.str()?.trim()?.takeIf { it.isNotEmpty() }?.let(::resolve))
             else -> emptyList()
         }
         return (obj.first("image", "images", "photo") ?: return emptyList()).let(::refs)
@@ -255,16 +341,21 @@ object RecipeImportParser {
 
     private fun JsonObject.firstString(vararg keys: String): String? = first(*keys)?.str()
 
+    /**
+     * Every string this parser reads passes through here, which makes it the one place where
+     * imported markup is neutralised — see [HtmlText]. A value that was nothing but markup
+     * (`<p></p>`) reads as absent afterwards, like any other empty field.
+     */
     private fun JsonElement.str(): String? = when (this) {
         is JsonNull -> null
-        is JsonPrimitive -> content.takeIf { it.isNotBlank() }
+        is JsonPrimitive -> HtmlText.toPlainText(content).takeIf { it.isNotBlank() }
         else -> null
     }
 
     private fun String?.toLines(): List<String> =
         this?.split("\n")?.map(String::trim)?.filter(String::isNotEmpty).orEmpty()
 
-    /** First integer at the start of e.g. "4 Portionen" → 4; null if none. */
+    /** First integer at the start of e.g. "4 Portionen" / "٤ حصص" → 4; null if none. */
     private fun leadingInt(s: String): Int? =
-        Regex("""^\s*(\d{1,3})""").find(s)?.groupValues?.get(1)?.toIntOrNull()
+        Regex("""^\s*(\d{1,3})""").find(TextFold.digits(s))?.groupValues?.get(1)?.toIntOrNull()
 }

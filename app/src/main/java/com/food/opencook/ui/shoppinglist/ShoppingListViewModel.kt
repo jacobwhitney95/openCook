@@ -30,11 +30,12 @@ import com.food.opencook.repository.ShoppingRepository
 import com.food.opencook.repository.SuggestionRepository
 import com.food.opencook.util.GroceryCategory
 import com.food.opencook.util.IngredientMatch
-import com.food.opencook.util.IngredientStaples
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -101,13 +102,12 @@ class ShoppingListViewModel @Inject constructor(
         combine(
             repository.observeItems(),
             pantryRepository.observeItems(),
-            recipeRepository.observeRecipes(),
-        ) { all, pantry, recipes ->
-            val names = recipes.associate { it.recipe.id to (it.recipe.name ?: "") }
+            recipeRepository.observeRecipeNames(),
+        ) { all, pantry, names ->
             val pantryNames = pantry.map { it.name.lowercase().trim() }.toSet()
+            // Only the pantry hides a recipe line — no built-in staples list (GitHub #26).
             val visible = all.filterNot { item ->
-                !item.manual &&
-                    (IngredientStaples.isStaple(item.text) || IngredientMatch.containsLike(pantryNames, item.text))
+                !item.manual && IngredientMatch.containsLike(pantryNames, item.text)
             }
             visible.map { item ->
                 val recipeNames = item.sourceRecipeIds
@@ -116,10 +116,14 @@ class ShoppingListViewModel @Inject constructor(
                     .orEmpty()
                 ShoppingRowUi(item, recipeNames)
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }
+            // Pantry matching runs per row against the whole pantry — keep it
+            // off the main thread so opening the tab isn't a dropped frame.
+            .flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /**
-     * The recipe items hidden **because the pantry covers them** (not staples) — the
+     * The recipe items hidden because the pantry covers them — the
      * "N im Vorrat übersprungen" chip. Each carries the covering pantry name so "brauch ich
      * doch" ([keepAnyway]) teaches the exact distinction and the item returns to [items].
      */
@@ -131,11 +135,13 @@ class ShoppingListViewModel @Inject constructor(
             if (pantry.isEmpty()) return@combine emptyList()
             val pantryNames = pantry.map { it.name.lowercase().trim() }
             all.mapNotNull { item ->
-                if (item.manual || IngredientStaples.isStaple(item.text)) return@mapNotNull null
+                if (item.manual) return@mapNotNull null
                 val coverer = pantryNames.firstOrNull { IngredientMatch.covers(it, item.text) }
                 coverer?.let { SkippedItemUi(item.id, item.text, it) }
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }
+            .flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** True when the list has items and every one is checked off — drives the "all bought" banner. */
     val allChecked: StateFlow<Boolean> =

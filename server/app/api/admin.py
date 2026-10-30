@@ -9,6 +9,7 @@ Backups reuse :mod:`app.backup`; the same archives the CLI/cron path produces.
 """
 
 import enum
+from dataclasses import dataclass
 import json
 import shutil
 import tempfile
@@ -24,7 +25,8 @@ from sqlalchemy.orm import Session
 from app.backup import _PREFIX, create_backup, restore_backup
 from app.config import get_settings
 from app.db import Base, engine, get_session
-from app.models import Household, ImportRecord, Job, ServerConfig, SyncMessage
+from app.extraction import catalog_languages, load_i18n
+from app.models import Household, ImportRecord, Job, PromptOverride, ServerConfig, SyncMessage
 from app.schemas import (
     AdminHouseholdPatch,
     AdminPasswordChangeRequest,
@@ -42,6 +44,9 @@ from app.schemas import (
     DbTableListResponse,
     DbTablePage,
     HouseholdSummary,
+    PromptListResponse,
+    PromptPatch,
+    PromptSet,
     RestoreRequest,
     RestoreResult,
 )
@@ -232,7 +237,8 @@ def reset_database(session: Session = Depends(get_session)) -> None:
     Deleting households means any device with the old code can no longer push, so nothing
     repopulates the DB. Deliberately keeps the admin password (``ServerConfig``) and the
     backups directory. The triggering device also clears its local DB and returns to
-    onboarding (its household is gone)."""
+    onboarding (its household is gone). Custom extraction prompts stay too: like the
+    password, they are server configuration, not data."""
     with _restore_lock:  # don't race an in-flight sync/restore
         session.query(SyncMessage).delete()
         session.query(Job).delete()
@@ -247,6 +253,105 @@ def reset_database(session: Session = Depends(get_session)) -> None:
                 shutil.rmtree(child, ignore_errors=True)
             else:
                 child.unlink(missing_ok=True)
+
+
+# --------------------------------------------------------------------------- #
+# Extraction prompts: the owner may replace each language's *instructions*; the
+# output-format part is always appended by the server (see extraction.I18n).
+# --------------------------------------------------------------------------- #
+
+
+# How many of the latest scans count towards "in use".
+_RECENT_JOBS = 200
+
+
+@dataclass
+class _LanguageUsage:
+    by_household: dict[str, list[str]]  # language → names of households set to it
+    from_scans: set[str]  # languages seen only in recent scans
+    follow_device: list[str]  # names of households on "follow the system language"
+
+    @property
+    def in_use(self) -> set[str]:
+        # With nothing to go on (no household or scan yet), English, the default catalog.
+        return (set(self.by_household) | self.from_scans) or {"en"}
+
+
+def _language_usage(session: Session) -> _LanguageUsage:
+    """Which content languages scans on this server use, and by whom: each household's
+    "Recipe language" setting. A household on "follow the system language" stores none —
+    its devices' language only shows in the recent scans, so those count then (a scan
+    doesn't record its household, hence no name). Codes are mapped to the catalog really
+    loaded, so "de-AT" counts as "de" and a language without one as "en"."""
+    by_household: dict[str, list[str]] = {}
+    follow_device: list[str] = []
+    for name, settings_json in session.execute(select(Household.name, Household.settings_json)):
+        try:
+            code = json.loads(settings_json or "{}").get("content_language")
+        except (ValueError, AttributeError):
+            code = None
+        label = name or "(unnamed)"
+        if code:
+            by_household.setdefault(load_i18n(code).language, []).append(label)
+        else:
+            follow_device.append(label)
+    from_scans: set[str] = set()
+    if follow_device:
+        recent = select(Job.language).order_by(Job.created_at.desc()).limit(_RECENT_JOBS)
+        from_scans = {load_i18n(code).language for (code,) in session.execute(recent) if code}
+        from_scans -= set(by_household)
+    return _LanguageUsage(by_household, from_scans, follow_device)
+
+
+def _prompt_set(language: str, session: Session, usage: _LanguageUsage | None = None) -> PromptSet:
+    i18n = load_i18n(language)
+    override = session.get(PromptOverride, language)
+    usage = usage or _language_usage(session)
+    return PromptSet(
+        language=language,
+        in_use=language in usage.in_use,
+        used_by=sorted(usage.by_household.get(language, [])),
+        from_scans=language in usage.from_scans,
+        text_default=i18n.text_instructions,
+        text_instructions=override.text_instructions if override else None,
+        box_default=i18n.box_instructions,
+        box_instructions=override.box_instructions if override else None,
+        text_format=i18n.text_format,
+        box_format=i18n.box_format,
+    )
+
+
+@router.get("/prompts", response_model=PromptListResponse, dependencies=[Depends(require_admin)])
+def list_prompts(session: Session = Depends(get_session)) -> PromptListResponse:
+    usage = _language_usage(session)
+    return PromptListResponse(
+        languages=[_prompt_set(lang, session, usage) for lang in catalog_languages()],
+        follow_device=sorted(usage.follow_device),
+    )
+
+
+@router.patch(
+    "/prompts/{language}", response_model=PromptSet, dependencies=[Depends(require_admin)]
+)
+def patch_prompts(
+    language: str, body: PromptPatch, session: Session = Depends(get_session)
+) -> PromptSet:
+    """Replace or reset one language's instructions; takes effect with the next scan.
+    Per field: null leaves it, blank resets it to the built-in default."""
+    if language not in catalog_languages():
+        raise HTTPException(status_code=404, detail="No prompts for this language")
+    override = session.get(PromptOverride, language) or PromptOverride(language=language)
+    if body.text_instructions is not None:
+        override.text_instructions = body.text_instructions.strip() or None
+    if body.box_instructions is not None:
+        override.box_instructions = body.box_instructions.strip() or None
+    if override.text_instructions is None and override.box_instructions is None:
+        if override in session:
+            session.delete(override)  # nothing custom left: drop the row
+    else:
+        session.add(override)
+    session.commit()
+    return _prompt_set(language, session)
 
 
 # --------------------------------------------------------------------------- #

@@ -38,4 +38,11 @@ object MessageCodec {
         if (value == null || value == "null") null else value.toDoubleOrNull()
 
     fun isTrue(value: String?): Boolean = value == "true"
+
+    /** Tri-state flag: "true" / "false", anything else (absent, "null") → null. */
+    fun decodeNullableBoolean(value: String?): Boolean? = when (value) {
+        "true" -> true
+        "false" -> false
+        else -> null
+    }
 }

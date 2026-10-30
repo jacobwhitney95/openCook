@@ -86,6 +86,8 @@ fun AddToMealPlanSheet(
     onReplace: (date: String, slot: String, onDone: () -> Unit) -> Unit,
     onDismiss: () -> Unit,
     onAssigned: (String) -> Unit,
+    /** Household allows several dishes per meal: an occupied day also offers "add as well". */
+    multiDish: Boolean = false,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var replaceTarget by remember { mutableStateOf<Pair<String, PlannedDish>?>(null) }
@@ -189,8 +191,20 @@ fun AddToMealPlanSheet(
                 }) { Text(stringResource(R.string.recipe_plan_replace_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { replaceTarget = null }) {
-                    Text(stringResource(R.string.processing_cancel))
+                Row {
+                    TextButton(onClick = { replaceTarget = null }) {
+                        Text(stringResource(R.string.processing_cancel))
+                    }
+                    if (multiDish) {
+                        TextButton(onClick = {
+                            val d = date
+                            replaceTarget = null
+                            onAssign(d, slot) {
+                                onAssigned(LocalDate.parse(d).format(shortLabelFmt))
+                                onDismiss()
+                            }
+                        }) { Text(stringResource(R.string.recipe_plan_add_also)) }
+                    }
                 }
             },
         )

@@ -19,6 +19,7 @@
 package com.food.opencook
 
 import com.food.opencook.data.recipeimport.RecipeImportParser
+import com.food.opencook.util.RecipeCategories
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -182,6 +183,64 @@ class RecipeImportParserTest {
         assertEquals("pro Portion", n.openCookBasis)
     }
 
+    /** A recipe page's own `recipeCategory` is the only category a web import ever gets — it is
+     *  saved without a review screen, so an unrecognised word must not fake one. */
+    @Test
+    fun schemaCategoryBecomesTheCategoryWhenRecognised() {
+        val r = parse("""{"name":"Mousse","recipeIngredient":["Schokolade"],"recipeCategory":"Nachtisch"}""")
+        assertEquals("dessert", r[0].openCookCategory)
+        // It became the category, so it is not repeated as a tag.
+        assertTrue(r[0].openCookTags.isEmpty())
+
+        // Comma list / array: the first word we know wins, the rest stays tag material.
+        assertEquals(
+            "soup",
+            parse("""{"name":"S","recipeIngredient":["W"],"recipeCategory":"Hauptspeise, Suppe"}""")[0].openCookCategory,
+        )
+        assertEquals(
+            "salad",
+            parse("""{"name":"S","recipeIngredient":["W"],"recipeCategory":["Vorspeise","Salat"]}""")[0].openCookCategory,
+        )
+    }
+
+    @Test
+    fun unknownSchemaCategoryLeavesTheRecipeUncategorized() {
+        // "Hauptspeise"/"Plat principal" name a meal, not one of the eight categories — forcing
+        // them to "other" would be a wrong answer instead of no answer.
+        val r = parse("""{"name":"Gulasch","recipeIngredient":["Rind"],"recipeCategory":"Hauptspeise"}""")
+        assertNull(r[0].openCookCategory)
+        assertEquals(listOf("Hauptspeise"), r[0].openCookTags) // kept, nothing from the page is lost
+    }
+
+    @Test
+    fun frenchSchemaCategoryUsesTheLocalizedAliases() {
+        val saved = RecipeCategories.activeAliases
+        try {
+            RecipeCategories.setAliases(saved + mapOf("poisson" to "fish", "pâtes" to "pasta"))
+            assertEquals(
+                "fish",
+                parse("""{"name":"Cabillaud","recipeIngredient":["cabillaud"],"recipeCategory":"Poisson"}""")[0]
+                    .openCookCategory,
+            )
+            val plat = parse("""{"name":"Boeuf","recipeIngredient":["boeuf"],"recipeCategory":"Plat principal"}""")
+            assertNull(plat[0].openCookCategory)
+            assertEquals(listOf("Plat principal"), plat[0].openCookTags)
+        } finally {
+            RecipeCategories.setAliases(saved)
+        }
+    }
+
+    @Test
+    fun ownBackupCategoryWinsAndKeywordsStayTheTagSource() {
+        val r = parse(
+            """{"name":"Lasagne","recipeIngredient":["Nudeln"],
+               "openCookCategory":"pasta","recipeCategory":"Suppe",
+               "keywords":"schnell, Ofen"}""",
+        )
+        assertEquals("pasta", r[0].openCookCategory)
+        assertEquals(listOf("schnell", "Ofen"), r[0].openCookTags)
+    }
+
     @Test
     fun imageReferencesAreKept() {
         // String, array and ImageObject forms; verbatim (data-URI / relative path / http URL).
@@ -198,5 +257,75 @@ class RecipeImportParserTest {
             parse("""{"name":"A","recipeIngredient":["a"],
                      "image":{"@type":"ImageObject","url":"https://h/i.jpg"}}""")[0].image,
         )
+    }
+
+    @Test
+    fun htmlInStepsBecomesCleanSeparateSteps() {
+        // The HelloFresh shape: a HowToStep whose text is a CMS fragment.
+        val r = parse(
+            """{"name":"Pasta &amp; Pesto","description":"Schnell &amp; einfach","recipeIngredient":["a"],
+               "recipeInstructions":[{"@type":"HowToStep","text":"Zwiebel sch\u00e4len.<br>Mit <b>Salz &amp; Pfeffer</b> w\u00fcrzen."},
+                                     {"@type":"HowToStep","text":"<p>Ofen vorheizen.</p><p>Teig kneten.</p>"}]}""",
+        )
+        assertEquals(
+            listOf("Zwiebel sch\u00e4len.", "Mit Salz & Pfeffer w\u00fcrzen.", "Ofen vorheizen.", "Teig kneten."),
+            r[0].recipeInstructions.map { it.text },
+        )
+        assertEquals("Pasta & Pesto", r[0].name)
+        assertEquals("Schnell & einfach", r[0].description)
+    }
+
+    @Test
+    fun htmlBlobInstructionsSplitOnMarkupNotSentences() {
+        // One string holding markup: the site's own line breaks win over sentence splitting.
+        val r = parse(
+            """{"name":"X","recipeIngredient":["a"],
+               "recipeInstructions":"<ul><li>Eier kochen. Dann pellen.</li><li>Reis kochen.</li></ul>"}""",
+        )
+        assertEquals(listOf("Eier kochen. Dann pellen.", "Reis kochen."), r[0].recipeInstructions.map { it.text })
+    }
+
+    @Test
+    fun markupOnlyStepsAreDropped() {
+        val r = parse(
+            """{"name":"X","recipeIngredient":["a"],
+               "recipeInstructions":[{"text":"<p></p>"},{"text":"Kochen."}]}""",
+        )
+        assertEquals(listOf("Kochen."), r[0].recipeInstructions.map { it.text })
+    }
+
+    @Test
+    fun ourOwnStepsSurviveTheRoundTripUnsplit() {
+        // A step of ours carries its row id, which maps 1:1 to a row — never split it, and
+        // never mistake the user's angle brackets for markup.
+        val r = parse(
+            """{"name":"X","recipeIngredient":["a"],"recipeInstructions":[
+                 {"@type":"HowToStep","openCookId":"s-1","text":"Backofen <180 \u00b0C> vorheizen.\nDann backen."}]}""",
+        )
+        val step = r[0].recipeInstructions.single()
+        assertEquals("s-1", step.openCookId)
+        assertEquals("Backofen <180 \u00b0C> vorheizen.\nDann backen.", step.text)
+    }
+
+    @Test
+    fun nonBreakingSpaceInIngredientStillParses() {
+        // "200&nbsp;g" would otherwise reach IngredientLineParser as one unsplittable token.
+        val r = parse("""{"name":"X","recipeIngredient":["200&nbsp;g Mehl"],"recipeInstructions":["b"]}""")
+        val ing = r[0].openCookIngredients.single()
+        assertEquals(200.0, ing.quantity!!, 1e-9)
+        assertEquals("g", ing.unit)
+        assertEquals("Mehl", ing.name)
+    }
+
+    @Test
+    fun pageUrlFromUrlOrMainEntityOfPage() {
+        // GitHub #31: the page a recipe came from, schema.org `url` first.
+        assertEquals("https://example.org/a", parse("""{"@type":"Recipe","name":"A","recipeIngredient":["1 Ei"],"url":"https://example.org/a"}""")[0].url)
+        assertEquals("https://example.org/b", parse(
+            """{"@type":"Recipe","name":"B","recipeIngredient":["1 Ei"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://example.org/b"}}""",
+        )[0].url)
+        assertEquals("https://example.org/c", parse("""{"@type":"Recipe","name":"C","recipeIngredient":["1 Ei"],"mainEntityOfPage":"https://example.org/c"}""")[0].url)
+        // Not a web address: no link.
+        assertNull(parse("""{"@type":"Recipe","name":"D","recipeIngredient":["1 Ei"],"url":"recipe-123"}""")[0].url)
     }
 }

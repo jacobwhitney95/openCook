@@ -174,6 +174,17 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /** Household-wide: several dishes per meal may be added by hand. */
+    val multiDishMeals: StateFlow<Boolean> = settings.multiDishMeals
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun setMultiDishMeals(enabled: Boolean) {
+        viewModelScope.launch {
+            settings.setMultiDishMeals(enabled)
+            publishHouseholdSettings()
+        }
+    }
+
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
 

@@ -35,14 +35,18 @@ import com.food.opencook.data.local.entity.InstructionEntity
 import com.food.opencook.data.local.entity.JobEntity
 import com.food.opencook.data.local.entity.NutritionEntity
 import com.food.opencook.data.local.entity.RecipeEntity
+import com.food.opencook.data.local.relation.RecipeListItem
 import com.food.opencook.data.local.relation.RecipeWithDetails
 import com.food.opencook.data.remote.JobsApi
 import com.food.opencook.data.remote.dto.RecipeDto
 import com.food.opencook.data.remote.mapper.MappedRecipe
 import com.food.opencook.data.remote.mapper.toMappedRecipe
 import com.food.opencook.util.ImportCorrector
+import com.food.opencook.util.MealTypes
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -95,6 +99,7 @@ class RecipeRepository @Inject constructor(
     private val importCorrector: ImportCorrector,
     private val shoppingRepository: ShoppingRepository,
     private val pantryRepository: PantryRepository,
+    private val mealPlanRepository: MealPlanRepository,
     private val contentLanguage: com.food.opencook.data.settings.ContentLanguageProvider,
 ) {
     fun observeRecipes(): Flow<List<RecipeWithDetails>> = recipeDao.observeAll()
@@ -105,6 +110,14 @@ class RecipeRepository @Inject constructor(
         recipeDao.getBySourcePhoto(jobId)
     suspend fun getRecipeOnce(recipeId: String): RecipeWithDetails? = recipeDao.getByIdOnce(recipeId)
     suspend fun getAllRecipesOnce(): List<RecipeWithDetails> = recipeDao.getAllOnce()
+
+    /** List-sized variants of the two above: no instructions, no nutrition. */
+    fun observeRecipeListItems(): Flow<List<RecipeListItem>> = recipeDao.observeAllListItems()
+    suspend fun getAllRecipeListItemsOnce(): List<RecipeListItem> = recipeDao.getAllListItemsOnce()
+
+    /** Recipe id → name, reactive. All the shopping list needs from a recipe. */
+    fun observeRecipeNames(): Flow<Map<String, String>> =
+        recipeDao.observeIdAndNames().map { rows -> rows.associate { it.id to (it.name ?: "") } }
 
     /**
      * The existing recipe whose name matches [name] (normalized), or null. Used for
@@ -415,6 +428,63 @@ class RecipeRepository @Inject constructor(
         transactor.withTransaction { recipeDao.deleteRecipe(recipeId) }
         recordChanges(listOf(FieldChange(SyncDatasets.RECIPES, recipeId, SyncDatasets.COLUMN_DELETED, "true")))
         shoppingRepository.removeOpenForRecipe(recipeId)
+        mealPlanRepository.deleteEntriesForRecipe(recipeId)
+    }
+
+    /** [deleteRecipe] for each of [recipeIds] — the recipe list's multi-select delete. */
+    suspend fun deleteRecipes(recipeIds: Collection<String>) {
+        recipeIds.forEach { deleteRecipe(it) }
+    }
+
+    // --- Bulk edits from the recipe list's selection -------------------------
+
+    /** Put every one of [recipeIds] into [cookbook]; blank clears it. */
+    suspend fun setCookbook(recipeIds: Collection<String>, cookbook: String?) {
+        val value = cookbook?.trim()?.takeIf { it.isNotEmpty() }
+        editField(recipeIds, "cookbook", { it.cookbook }) { it.copy(cookbook = value) }
+    }
+
+    /** Give every one of [recipeIds] the category [key] (one of `RecipeCategories.KEYS`). */
+    suspend fun setCategory(recipeIds: Collection<String>, key: String) {
+        editField(recipeIds, "category", { it.category }) { it.copy(category = key) }
+    }
+
+    /**
+     * Add [add] to and take [remove] from each recipe's meals, leaving every other meal it
+     * has alone — marking twenty dishes as breakfast must not wipe the dinner some of them
+     * already carry. Works on the *resolved* list, so an unset recipe (= lunch + dinner)
+     * keeps those two when it gains a breakfast.
+     */
+    suspend fun editMealTypes(recipeIds: Collection<String>, add: Set<String>, remove: Set<String>) {
+        if (add.isEmpty() && remove.isEmpty()) return
+        editField(recipeIds, "mealTypes", { it.mealTypes }) { recipe ->
+            val current = MealTypes.fromStored(recipe.mealTypes)
+            val next = (current - remove + add).distinct()
+            // Unchanged → keep the stored value as it is (null stays null, not "lunch\ndinner").
+            if (next.toSet() == current.toSet()) recipe else recipe.copy(mealTypes = MealTypes.toStored(next))
+        }
+    }
+
+    /**
+     * Apply [edit] to each recipe and sync the one [field] it touches — only where the value
+     * actually changed, so a bulk edit over forty recipes doesn't log forty no-ops.
+     */
+    private suspend fun editField(
+        recipeIds: Collection<String>,
+        field: String,
+        read: (RecipeEntity) -> String?,
+        edit: (RecipeEntity) -> RecipeEntity,
+    ) {
+        val now = System.currentTimeMillis()
+        recipeIds.forEach { id ->
+            val before = recipeDao.getByIdOnce(id)?.recipe ?: return@forEach
+            val after = edit(before)
+            val value = read(after)
+            if (value == read(before)) return@forEach
+            recipeDao.upsertRecipeEntity(after.copy(updatedAt = now))
+            val encoded = if (value == null) "null" else Json.encodeToString(String.serializer(), value)
+            recordChanges(listOf(FieldChange(SyncDatasets.RECIPES, id, field, encoded)))
+        }
     }
 
     private suspend fun recordChanges(changes: List<FieldChange>) = messageRecorder.record(changes)

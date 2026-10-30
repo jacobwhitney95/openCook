@@ -67,6 +67,23 @@ class ServerConfig(Base):
     )
 
 
+class PromptOverride(Base):
+    """A server owner's replacement for one content language's extraction instructions,
+    edited in the admin console. Only the instructions: the output-format part of each
+    prompt stays built in (see extraction.I18n), so an edit can't break parsing. A null
+    column means the built-in default. Its own table rather than columns on
+    ServerConfig: create_all adds a missing table to an existing database, not columns."""
+
+    __tablename__ = "prompt_overrides"
+
+    language: Mapped[str] = mapped_column(String, primary_key=True)
+    text_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
+    box_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=_utcnow, onupdate=_utcnow, nullable=False
+    )
+
+
 class SyncMessage(Base):
     """One append-only sync message, scoped to a household. Mirror of the app's
     Room `messages` table. The packed-HLC [timestamp] is globally unique (it embeds

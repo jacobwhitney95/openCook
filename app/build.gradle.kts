@@ -36,8 +36,8 @@ android {
         applicationId = "com.food.opencook"
         minSdk = 30
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.2"
+        versionCode = 3
+        versionName = "0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -192,6 +192,9 @@ dependencies {
     // Image loading
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+
+    // Drag-to-reorder in the recipe editor
+    implementation(libs.reorderable)
 
     // Camera capture
     implementation(libs.androidx.camera.core)

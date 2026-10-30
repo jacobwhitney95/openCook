@@ -1,6 +1,9 @@
 from fastapi.testclient import TestClient
+from sqlalchemy import delete
 
+from app.db import SessionLocal, init_db
 from app.main import app
+from app.models import Household
 
 
 def test_create_lists_and_join_open_household() -> None:
@@ -35,7 +38,19 @@ def test_household_size_defaults_when_unset() -> None:
         assert body["settings"]["household_size"] == 2
 
 
+def _clear_households() -> None:
+    """``/households/current`` needs exactly one household, and other tests leave theirs behind."""
+    init_db()  # tables may not exist yet if no TestClient lifespan has run
+    session = SessionLocal()
+    try:
+        session.execute(delete(Household))
+        session.commit()
+    finally:
+        session.close()
+
+
 def test_current_household_requires_authentik_identity() -> None:
+    _clear_households()
     with TestClient(app) as client:
         body = client.post("/households", json={"name": "Current"}).json()
         assert client.get("/households/current").status_code == 401

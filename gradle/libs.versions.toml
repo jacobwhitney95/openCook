@@ -37,6 +37,9 @@ coil = "3.4.0"
 # Camera
 camerax = "1.6.1"
 
+# Drag-to-reorder for Compose lazy lists — Apache-2.0 (GPLv3-compatible)
+reorderable = "3.1.0"
+
 # Barcode decoding — pure-Java, Apache-2.0 (GPLv3-compatible)
 zxing = "3.5.4"
 
@@ -111,6 +114,9 @@ retrofit-kotlinx-serialization-converter = { group = "com.jakewharton.retrofit",
 # Images
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
+
+# Drag-to-reorder
+reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
 
 # Camera
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }

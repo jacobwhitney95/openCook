@@ -23,9 +23,6 @@
 
     <!-- Bottom navigation -->
     <string name="nav_recipes">Rezepte</string>
-    <string name="nav_scan">Scannen</string>
-    <string name="nav_shopping">Einkaufsliste</string>
-    <string name="nav_settings">Einstellungen</string>
 
     <!-- Settings -->
     <string name="settings_title">Einstellungen</string>
@@ -38,31 +35,20 @@
     <string name="settings_save">Speichern</string>
 
     <!-- Scan -->
-    <string name="scan_title">Rezept scannen</string>
-    <string name="scan_intro">Fotografiere eine Kochbuchseite oder wähle ein Bild aus der Galerie. Die KI erkennt die Rezepte für dich.</string>
     <string name="scan_take_photo">Foto aufnehmen</string>
     <string name="scan_pick_gallery">Aus Galerie wählen</string>
     <string name="scan_no_server_title">Foto-Erkennung braucht einen Server</string>
     <string name="scan_no_server">Die KI läuft auf deinem openCook-Server. Ohne Server kannst du Rezepte weiterhin manuell anlegen oder aus einer Datei importieren.</string>
+    <string name="scan_tile_needs_server">Braucht Server</string>
+    <string name="scan_tile_later">Wird später erkannt</string>
     <string name="scan_go_to_settings">Zu den Einstellungen</string>
-    <string name="scan_server_offline_title">Server gerade nicht erreichbar</string>
-    <string name="scan_server_offline">Du kannst trotzdem fotografieren — die Fotos bleiben auf dem Handy und werden automatisch erkannt, sobald der Server wieder antwortet.</string>
-    <plurals name="scan_server_offline_queued">
-        <item quantity="one">%d Scan wartet.</item>
-        <item quantity="other">%d Scans warten.</item>
-    </plurals>
-    <string name="scan_server_retry">Erneut prüfen</string>
 
     <!-- Camera -->
     <string name="camera_capture">Aufnehmen</string>
     <string name="camera_permission_rationale">Für die Aufnahme wird Kamerazugriff benötigt. Du kannst stattdessen auch ein Bild aus der Galerie wählen.</string>
 
     <!-- Processing -->
-    <string name="processing_title">Wird verarbeitet…</string>
-    <string name="processing_hint">Das Rezept wird auf dem Server erkannt. Das kann einen Moment dauern.</string>
-    <string name="processing_offline">Server nicht erreichbar — der Scan steht in der Warteschlange und wird verarbeitet, sobald der Server wieder da ist.</string>
     <string name="processing_cancel">Abbrechen</string>
-    <string name="processing_error">Erkennung fehlgeschlagen</string>
 
     <!-- Review -->
     <string name="review_title">Rezept prüfen</string>
@@ -79,10 +65,19 @@
     <string name="review_notes">Notizen</string>
     <string name="review_add_ingredient">Zutat hinzufügen</string>
     <string name="review_add_step">Schritt hinzufügen</string>
+    <string name="review_paste_hint_ingredient">Zutat – oder ganze Liste einfügen</string>
+    <string name="review_paste_hint_step">Schritt beschreiben – oder alle Schritte einfügen</string>
+    <plurals name="review_pasted_ingredients">
+        <item quantity="one">In %1$d Zutat aufgeteilt</item>
+        <item quantity="other">In %1$d Zutaten aufgeteilt</item>
+    </plurals>
+    <plurals name="review_pasted_steps">
+        <item quantity="one">In %1$d Schritt aufgeteilt</item>
+        <item quantity="other">In %1$d Schritte aufgeteilt</item>
+    </plurals>
     <string name="review_save">Speichern</string>
     <string name="review_image_take">Foto aufnehmen</string>
     <string name="review_image_gallery">Galerie</string>
-    <string name="review_image_later">Später</string>
     <string name="review_image_rotate">90° drehen</string>
     <string name="review_image_crop">Zuschneiden</string>
     <string name="crop_apply">Übernehmen</string>
@@ -91,12 +86,14 @@
     <!-- Recipes -->
     <string name="recipes_title">Rezepte</string>
     <string name="recipes_title_count">Rezepte (%1$d)</string>
-    <string name="recipes_empty">Noch keine Rezepte. Tippe auf „Scannen“, um dein erstes Rezept zu erfassen.</string>
     <string name="recipes_search_hint">Rezepte suchen…</string>
     <string name="recipes_filter_all">Alle</string>
     <string name="recipes_filter">Filter</string>
-    <string name="recipes_filter_title">Filter</string>
+    <string name="recipes_filter_title">Filter &amp; Sortierung</string>
     <string name="recipes_filter_reset">Zurücksetzen</string>
+    <string name="recipes_sort">Sortieren</string>
+    <string name="recipes_sort_newest">Neueste zuerst</string>
+    <string name="recipes_sort_name">A–Z</string>
     <string name="recipes_filter_liked">Nur Favoriten</string>
     <string name="recipes_filter_cookable">Jetzt kochbar</string>
     <string name="recipes_filter_remove">Filter %1$s entfernen</string>
@@ -108,7 +105,6 @@
     <string name="recipe_delete">Löschen</string>
     <string name="recipe_edit">Bearbeiten</string>
     <string name="recipe_like">Gemocht</string>
-    <string name="recipe_cookbook_label">Kochbuch</string>
     <string name="recipe_cooked_mark">Als gekocht markieren</string>
     <string name="recipe_cooked_marked">Heute gekocht</string>
     <string name="recipe_cooked_badge">Gekocht</string>
@@ -140,24 +136,10 @@
         <item quantity="one">%1$s: %2$d Gericht</item>
         <item quantity="other">%1$s: %2$d Gerichte</item>
     </plurals>
-    <string name="retrospect_month_headline">Im %1$s</string>
     <plurals name="retrospect_month_meals">
         <item quantity="one">%1$d Gericht gekocht</item>
         <item quantity="other">%1$d Gerichte gekocht</item>
     </plurals>
-    <string name="retrospect_month_days">an %1$d von %2$d Tagen</string>
-    <string name="retrospect_month_none">Diesen Monat noch nichts gekocht</string>
-    <string name="retrospect_section_most_cooked">Am häufigsten</string>
-    <string name="retrospect_section_favourites">Mögen alle</string>
-    <string name="retrospect_section_stale">Lange nicht gekocht</string>
-    <string name="retrospect_times">%1$d×</string>
-    <string name="retrospect_likes_label">Mögen</string>
-    <string name="retrospect_never_cooked">noch nie</string>
-    <plurals name="retrospect_months_ago">
-        <item quantity="one">vor %1$d Monat</item>
-        <item quantity="other">vor %1$d Monaten</item>
-    </plurals>
-    <string name="retrospect_show_all">Alle ansehen</string>
     <string name="retrospect_empty_title">Noch nichts zum Zurückblicken</string>
     <string name="retrospect_empty_message">Sobald du Gerichte als gekocht markierst, sammeln sie sich hier.</string>
 
@@ -176,7 +158,6 @@
     <string name="stage_reading_text">Rezepttext wird gelesen…</string>
     <string name="stage_detecting_photos">Gerichtsfotos werden erkannt…</string>
     <string name="status_processing_generic">Wird verarbeitet…</string>
-    <string name="status_processing_many">%1$d Scans werden verarbeitet…</string>
     <string name="status_review_action">Prüfen</string>
     <string name="status_dismiss">Schließen</string>
     <string name="status_cancel">Abbrechen</string>
@@ -192,7 +173,6 @@
     <string name="status_added_many">„%1$s“ + %2$d weitere</string>
 
     <!-- Shopping list -->
-    <string name="shopping_title">Einkaufsliste</string>
     <!-- Segment switch in the "Einkauf" tab between the shopping list and the pantry -->
     <string name="segment_shopping">Einkaufsliste</string>
     <string name="segment_pantry">Vorrat</string>
@@ -206,33 +186,35 @@
     <string name="shopping_add">Hinzufügen</string>
     <string name="shopping_empty">Einkaufsliste ist leer. Füge Artikel hinzu oder übernimm die Zutaten eines Rezepts.</string>
     <string name="shopping_delete">Entfernen</string>
-    <string name="shopping_clear_checked">Abgehakte → Vorrat</string>
     <string name="shopping_all_bought_title">Alles eingekauft 🎉</string>
     <string name="shopping_all_bought_action">In den Vorrat übernehmen</string>
-    <string name="shopping_clear_all">Alles löschen</string>
-    <string name="shopping_clear_all_title">Einkaufsliste leeren?</string>
-    <string name="shopping_clear_all_text">Alle %1$d Artikel werden entfernt. Diese Aktion kann nicht rückgängig gemacht werden.</string>
-    <string name="shopping_clear_all_confirm">Leeren</string>
-    <string name="shopping_more_actions">Weitere Aktionen</string>
     <string name="shopping_add_from_recipe">Auf die Einkaufsliste</string>
     <string name="shopping_already_home">Schon zu Hause (→ Vorrat)</string>
     <string name="shopping_moved_to_pantry">In den Vorrat gelegt</string>
     <string name="shopping_skipped_chip">%1$d im Vorrat übersprungen</string>
     <string name="shopping_need_anyway">Brauch ich doch</string>
     <string name="shopping_needed_for">Für: %1$s</string>
-    <string name="shopping_done_section">Erledigt</string>
     <string name="shopping_actions">Aktionen</string>
     <string name="swipe_to_pantry">Vorrat</string>
     <string name="swipe_to_shopping">Einkaufsliste</string>
     <string name="shopping_nf_adapt">Als erledigt markieren</string>
     <string name="shopping_adapted">Als erledigt markiert</string>
     <string name="scan_manual">Manuell erstellen</string>
+    <string name="recipe_open_source">Originalrezept öffnen</string>
     <string name="recipe_add_to_plan">Zum Wochenplan</string>
     <string name="recipe_plan_sheet_title">Tag wählen</string>
     <string name="recipe_plan_added">Hinzugefügt für %1$s</string>
     <string name="recipe_plan_replace_title">Tag bereits geplant</string>
     <string name="recipe_plan_replace_text">Am %1$s ist bereits „%2$s" geplant. Soll dieses Rezept ersetzt werden?</string>
     <string name="recipe_plan_replace_confirm">Ersetzen</string>
+    <string name="recipe_plan_add_also">Dazu planen</string>
+    <string name="recipe_timer_set">Schritt %1$d: neuer Timer für %2$s gestartet</string>
+    <string name="recipe_timer_own">Timer stellen</string>
+    <string name="recipe_tags_less">Weniger</string>
+    <string name="recipe_tags_more">+%1$d weitere</string>
+    <string name="recipe_timer_label">Schritt %1$d · %2$s</string>
+    <string name="recipe_timer_open_clock">Uhr öffnen</string>
+    <string name="recipe_timer_no_app">Keine Uhr-App mit Timer gefunden</string>
     <string name="recipe_plan_day_free">Frei</string>
     <string name="wizard_step_of">Schritt %1$d von %2$d</string>
     <string name="wizard_back">Zurück</string>
@@ -250,7 +232,6 @@
     <string name="wizard_ingredient_qty">Menge</string>
     <string name="wizard_ingredient_unit">Einheit</string>
     <string name="wizard_ingredient_name">Zutat</string>
-    <string name="wizard_step_number">Schritt %1$d</string>
     <string name="wizard_step_move_up">Nach oben</string>
     <string name="wizard_step_move_down">Nach unten</string>
     <string name="wizard_time_none">Keine Angabe</string>
@@ -264,6 +245,12 @@
     <!-- Pantry -->
     <string name="pantry_add_hint">Standardzutat hinzufügen…</string>
     <string name="pantry_empty">Noch keine Standardzutaten.</string>
+    <string name="pantry_basics">Grundzutaten (immer da)</string>
+    <string name="pantry_basics_show">Grundzutaten anzeigen</string>
+    <string name="pantry_basics_hide">Grundzutaten ausblenden</string>
+    <string name="pantry_basics_empty">Hierher ziehen, was beim Kochen nie aufgebraucht wird</string>
+    <string name="pantry_moved_to_basics">%1$s → Grundzutaten</string>
+    <string name="pantry_moved_from_basics">%1$s → normaler Vorrat</string>
     <string name="shopping_added">Zur Einkaufsliste hinzugefügt</string>
 
     <!-- Meal plan -->
@@ -275,7 +262,6 @@
     <string name="mealplan_pick_clear_filter">Entferne den Filter oben, um aus allen Rezepten zu wählen.</string>
     <string name="mealplan_no_recipes">Noch keine Rezepte zum Planen.</string>
     <string name="mealplan_generated">Zutaten zur Einkaufsliste hinzugefügt</string>
-    <string name="mealplan_remove_dish">Gericht entfernen</string>
     <string name="mealplan_day_not_planned">Nicht geplant</string>
     <string name="mealplan_day_yesterday">Gestern</string>
     <string name="mealplan_day_today">Heute</string>
@@ -285,11 +271,6 @@
     <string name="mealplan_week_next">Nächste Woche</string>
     <string name="mealplan_week_after_next">Übernächste Woche</string>
     <string name="mealplan_jump_today">Heute</string>
-    <string name="mealplan_skip">Aussetzen</string>
-    <string name="mealplan_unskip">Einplanen</string>
-    <string name="mealplan_skipped_label">ausgesetzt</string>
-    <string name="mealplan_pin">Anpinnen (bleibt beim Würfeln)</string>
-    <string name="mealplan_unpin">Lösen</string>
 
     <!-- Meal-planner reasons (why a dish was picked) -->
     <string name="mealplan_reason_week_reuse">Verwertet %1$s</string>
@@ -313,7 +294,6 @@
     <string name="protein_label_plant">Pflanzlich</string>
     <string name="mealplan_reasons_title">Warum dieses Gericht?</string>
     <string name="mealplan_reasons_why">Warum?</string>
-    <string name="mealplan_reasons_close">Schließen</string>
     <string name="mealplan_reasons_section_for">Pro</string>
     <string name="mealplan_reasons_section_against">Kontra</string>
     <string name="mealplan_reasons_none">Manuell hinzugefügt — keine Begründung.</string>
@@ -338,7 +318,6 @@
     <string name="onboarding_peers_step_title">Über ein Handy beitreten, das den Haushalt schon hat — oder neu gründen</string>
     <string name="onboarding_peers_searching">Suche Handys in diesem WLAN… Auf dem anderen Handy muss openCook geöffnet sein.</string>
     <string name="onboarding_peers_create_subtitle">Auf diesem Handy starten — die anderen treten danach bei.</string>
-    <string name="onboarding_manual_hint">Nicht gefunden? Server-Adresse manuell eingeben:</string>
     <string name="onboarding_manual_toggle">Server manuell eingeben</string>
     <string name="onboarding_manual_address_label">Server-Adresse</string>
     <string name="onboarding_manual_address_placeholder">192.168.0.10:8000</string>
@@ -380,8 +359,8 @@
     <!-- Admin area (server backup/restore) -->
 
     <!-- Recipe JSON import (button on the add-recipe screen) -->
-    <string name="import_from_file">Aus JSON-Datei importieren</string>
-    <string name="import_running">Importiere… %1$d / %2$d</string>
+    <string name="import_from_file">Aus Datei importieren</string>
+    <string name="import_running">Rezepte werden importiert…</string>
     <string name="import_done">%1$d importiert, %2$d übersprungen</string>
     <string name="import_error">Import fehlgeschlagen: %1$s</string>
     <string name="import_read_failed">Datei konnte nicht gelesen werden</string>
@@ -405,6 +384,23 @@
     <string name="import_share_error_load">Seite konnte nicht geladen werden.</string>
     <string name="import_share_fallback_name">Rezept</string>
 
+    <string name="scan_discover">Im Netz entdecken</string>
+    <string name="discover_title">Rezepte entdecken</string>
+    <string name="discover_add">Hinzufügen</string>
+    <string name="discover_remove">%1$s entfernen</string>
+    <string name="discover_address_hint">chefkoch.de/rezepte</string>
+    <string name="discover_removed">„%1$s“ entfernt</string>
+    <string name="discover_clear">Cookies von %1$s löschen</string>
+    <string name="discover_clear_confirm_title">Cookies von %1$s löschen?</string>
+    <string name="discover_clear_confirm_text">%1$s vergisst dieses Handy: Cookies und was die Seite im Browser abgelegt hat werden entfernt, auch das dort akzeptierte Cookie-Banner — beim nächsten Besuch fragt es wieder. Rezepte, die du von %1$s importiert hast, bleiben in deiner Sammlung.</string>
+    <string name="discover_cleared">Cookies von %1$s gelöscht</string>
+    <string name="discover_import">Dieses Rezept importieren</string>
+    <string name="discover_import_short">Importieren</string>
+    <string name="discover_close">Seite schließen</string>
+    <string name="discover_disclaimer">Eine eingebaute Browser-Ansicht: fremde Seiten mit ihrer eigenen Werbung und ihren eigenen Cookies. openCook gehört nicht zu ihnen und speichert nur das Rezept, das du öffnest — für deinen privaten Gebrauch.</string>
+    <string name="discover_no_webview_title">Browser-Ansicht nicht verfügbar</string>
+    <string name="discover_no_webview_body">Auf diesem Gerät ist die Android System WebView nicht installiert oder abgeschaltet — Seiten lassen sich hier deshalb nicht anzeigen. Rezepte kannst du weiterhin per Foto, aus einer Datei, über einen geteilten Link oder von Hand anlegen.</string>
+
     <!-- Home (Heute) -->
 
     <!-- Recipes list -->
@@ -419,20 +415,47 @@
     <string name="action_delete">Löschen</string>
     <string name="recipe_delete_confirm_title">Rezept löschen?</string>
     <string name="recipe_delete_confirm_text">Dieses Rezept wird dauerhaft gelöscht.</string>
+    <!-- Multi-select in the recipe list (long-press a card) -->
+    <string name="recipes_selected_of">%1$d von %2$d</string>
+    <string name="recipes_select_all">Alle auswählen</string>
+    <string name="recipes_selection_cancel">Auswahl beenden</string>
+    <string name="recipes_select_none">Auswahl aufheben</string>
+    <plurals name="recipes_bulk_edit_title">
+        <item quantity="one">%1$d Rezept bearbeiten</item>
+        <item quantity="other">%1$d Rezepte bearbeiten</item>
+    </plurals>
+    <string name="recipes_bulk_apply">Übernehmen</string>
+    <string name="recipes_bulk_mixed">Unterschiedlich</string>
+    <string name="recipes_bulk_no_cookbook">Kein Kochbuch</string>
+    <string name="recipes_bulk_mealtypes_hint">Tippe eine Mahlzeit an, um sie allen zu geben – oder keinem.</string>
+    <plurals name="recipes_bulk_done">
+        <item quantity="one">%1$d Rezept geändert</item>
+        <item quantity="other">%1$d Rezepte geändert</item>
+    </plurals>
+    <plurals name="recipes_delete_selected_title">
+        <item quantity="one">%1$d Rezept löschen?</item>
+        <item quantity="other">%1$d Rezepte löschen?</item>
+    </plurals>
+    <plurals name="recipes_delete_selected_text">
+        <item quantity="one">Dieses Rezept wird dauerhaft gelöscht.</item>
+        <item quantity="other">Diese Rezepte werden dauerhaft gelöscht.</item>
+    </plurals>
     <string name="settings_leave_confirm_title">Haushalt verlassen?</string>
     <string name="settings_leave_confirm_text">Dieses Gerät trennt sich vom Haushalt und kehrt zur Ersteinrichtung zurück. Die geteilten Daten bleiben auf dem Server.</string>
     <string name="undo">Rückgängig</string>
     <string name="deleted">Gelöscht</string>
 
     <!-- Sync status (shared top bar) -->
-    <string name="sync_status_ok">Synchronisiert</string>
-    <string name="sync_status_ok_peer">Synchronisiert (über %1$s)</string>
+    <string name="sync_status_ok">Alles synchron</string>
+    <string name="sync_status_ok_peer">Alles synchron (über %1$s)</string>
     <string name="sync_status_not_configured">Kein Server – tippen für Einstellungen</string>
     <string name="sync_status_syncing">Synchronisiere…</string>
     <string name="sync_status_failed">Nicht verbunden – tippen zum Synchronisieren</string>
+    <string name="sync_status_off_home_network">Nicht im Heimnetz – Sync pausiert</string>
     <string name="sync_status_household_missing">Haushalt auf dem Server nicht gefunden – evtl. wurde er neu aufgesetzt. In den Einstellungen neu beitreten.</string>
     <string name="sync_error_offline">Server nicht erreichbar – wird automatisch erneut versucht, sobald er verfügbar ist.</string>
-    <string name="sync_status_last_success">Zuletzt synchronisiert: %1$s</string>
+    <string name="sync_error_off_home_network">Sync funktioniert nur im heimischen WLAN (oder per VPN) – es geht von allein weiter, sobald du wieder verbunden bist.</string>
+    <string name="sync_status_last_success">Alles synchron – zuletzt ausgetauscht %1$s</string>
     <string name="sync_progress_recipes">Rezepte synchronisieren … %1$d</string>
     <string name="sync_progress_images">Bilder laden … %1$d / %2$d</string>
     <string name="sync_progress_percent">%1$d %%</string>
@@ -534,6 +557,9 @@
     <string name="settings_content_language_system">Systemsprache</string>
     <string name="lang_german">Deutsch</string>
     <string name="lang_english">English</string>
+    <string name="lang_french">Français</string>
+    <string name="lang_spanish">Español</string>
+    <string name="lang_arabic">العربية</string>
 
     <!-- Recipe categories (stored as keys, shown localized) -->
     <string name="cat_pasta">Pasta</string>
@@ -564,11 +590,11 @@
     <string name="mealtype_short_dinner">Abend</string>
     <!-- Household setting: which meals are planned at all -->
     <string name="household_planned_meals">Geplante Mahlzeiten</string>
-    <string name="household_planned_meals_hint">Mindestens eine Mahlzeit muss aktiv bleiben. Für einzelne Tage kannst du im Wochenplaner trotzdem jede andere Mahlzeit hinzufügen.</string>
+    <string name="household_planned_meals_hint">Mindestens eine Mahlzeit muss aktiv bleiben.</string>
+    <string name="household_multi_dish">Mehrere Gerichte pro Mahlzeit</string>
     <!-- Week planner: slots -->
     <string name="mealplan_slot_add">planen</string>
-    <string name="mealplan_slot_add_named">%1$s planen</string>
-    <string name="mealplan_already_on_list">Steht schon auf der Einkaufsliste – nichts hinzugefügt</string>
+    <string name="shopping_already_on_list">Steht schon auf der Einkaufsliste – nichts hinzugefügt</string>
     <string name="mealplan_add_missing">Fehlendes auf die Einkaufsliste</string>
     <string name="mealplan_slot_no_recipes">Noch keine %1$s-Rezepte</string>
 

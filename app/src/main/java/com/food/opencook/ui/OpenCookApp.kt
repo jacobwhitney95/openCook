@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -68,6 +69,8 @@ import com.food.opencook.data.notification.JobNotifier
 import com.food.opencook.ui.capture.CameraCaptureScreen
 import com.food.opencook.ui.mealplan.MealPlanPickScreen
 import com.food.opencook.ui.mealplan.MealPlanScreen
+import com.food.opencook.ui.discover.DiscoverScreen
+import com.food.opencook.ui.discover.WebImportScreen
 import com.food.opencook.ui.navigation.Routes
 import com.food.opencook.ui.navigation.TopLevelDestination
 import com.food.opencook.ui.recipeimport.ImportViewModel
@@ -76,7 +79,6 @@ import com.food.opencook.ui.recipes.RecipeDetailScreen
 import com.food.opencook.ui.recipes.RecipesScreen
 import com.food.opencook.ui.retrospect.RetrospectScreen
 import com.food.opencook.ui.review.ReviewScreen
-import com.food.opencook.ui.scan.ScanScreen
 import com.food.opencook.ui.settings.AboutScreen
 import com.food.opencook.ui.settings.AppearanceSettingsScreen
 import com.food.opencook.ui.settings.HouseholdSettingsScreen
@@ -191,6 +193,10 @@ private fun MainScaffold() {
                 val result = snackbarHostState.showSnackbar(
                     message = shareSavedMsg.orEmpty(),
                     actionLabel = shareViewLabel,
+                    // An action label alone makes the snackbar Indefinite — it would sit
+                    // there until the recipe was opened. Let it time out instead.
+                    withDismissAction = true,
+                    duration = SnackbarDuration.Long,
                 )
                 if (result == SnackbarResult.ActionPerformed) {
                     navController.navigate(Routes.recipeDetail(s.recipeId))
@@ -238,7 +244,7 @@ private fun MainScaffold() {
             Column(Modifier.fillMaxSize().statusBarsPadding()) {
                 InstanceBanner()
                 Box(Modifier.weight(1f)) {
-                    AppNavHost(navController, navigateToTab)
+                    AppNavHost(navController, navigateToTab, importViewModel)
                 }
                 if (showShell) {
                     StatusStrip(
@@ -256,7 +262,11 @@ private fun MainScaffold() {
 }
 
 @Composable
-private fun AppNavHost(navController: NavHostController, navigateToTab: (String) -> Unit) {
+private fun AppNavHost(
+    navController: NavHostController,
+    navigateToTab: (String) -> Unit,
+    importViewModel: ImportViewModel,
+) {
     NavHost(
         navController = navController,
         startDestination = TopLevelDestination.RECIPES.route,
@@ -264,7 +274,10 @@ private fun AppNavHost(navController: NavHostController, navigateToTab: (String)
         composable(TopLevelDestination.RECIPES.route) {
             RecipesScreen(
                 onRecipeClick = { navController.navigate(Routes.recipeDetail(it)) },
-                onAddRecipe = { navController.navigate(Routes.SCAN) },
+                onOpenCamera = { navController.navigate(Routes.CAMERA) },
+                onCreateManually = { navController.navigate(Routes.reviewNew()) },
+                onDiscover = { navController.navigate(Routes.DISCOVER) },
+                onOpenSettings = { navigateToTab(TopLevelDestination.SETTINGS.route) },
             )
         }
         composable(TopLevelDestination.PLAN.route) {
@@ -272,7 +285,9 @@ private fun AppNavHost(navController: NavHostController, navigateToTab: (String)
                 onOpenRecipe = { recipeId, planEntryId ->
                     navController.navigate(Routes.recipeDetail(recipeId, planEntryId))
                 },
-                onPickRecipe = { date, slot -> navController.navigate(Routes.planPick(date, slot)) },
+                onPickRecipe = { date, slot, swapEntryId ->
+                    navController.navigate(Routes.planPick(date, slot, swapEntryId))
+                },
                 onOpenRetrospect = { navController.navigate(Routes.RETROSPECT) },
             )
         }
@@ -317,20 +332,32 @@ private fun AppNavHost(navController: NavHostController, navigateToTab: (String)
             arguments = listOf(
                 navArgument(Routes.ARG_DATE) { type = NavType.StringType },
                 navArgument(Routes.ARG_SLOT) { type = NavType.StringType },
+                navArgument(Routes.ARG_SWAP_ENTRY) { type = NavType.StringType; defaultValue = "" },
             ),
         ) { entry ->
             MealPlanPickScreen(
                 date = entry.arguments?.getString(Routes.ARG_DATE).orEmpty(),
                 slot = entry.arguments?.getString(Routes.ARG_SLOT).orEmpty(),
+                swapEntryId = entry.arguments?.getString(Routes.ARG_SWAP_ENTRY)?.takeIf { it.isNotEmpty() },
                 onBack = { navController.popBackStack() },
             )
         }
 
-        composable(Routes.SCAN) {
-            ScanScreen(
-                onNavigateToCamera = { navController.navigate(Routes.CAMERA) },
-                onNavigateToSettings = { navigateToTab(TopLevelDestination.SETTINGS.route) },
-                onCreateManually = { navController.navigate(Routes.reviewNew()) },
+        composable(Routes.DISCOVER) {
+            DiscoverScreen(
+                onOpen = { url -> navController.navigate(Routes.discoverWeb(url)) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            Routes.DISCOVER_WEB,
+            arguments = listOf(navArgument(Routes.ARG_URL) { type = NavType.StringType }),
+        ) { entry ->
+            // Shares the shell's ImportViewModel, so an import here lands in the same
+            // snackbars (saved / already there / no recipe) as a link shared from a browser.
+            WebImportScreen(
+                startUrl = entry.arguments?.getString(Routes.ARG_URL).orEmpty(),
+                importViewModel = importViewModel,
                 onBack = { navController.popBackStack() },
             )
         }

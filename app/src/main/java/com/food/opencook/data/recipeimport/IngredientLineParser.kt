@@ -19,6 +19,7 @@
 package com.food.opencook.data.recipeimport
 
 import com.food.opencook.data.remote.dto.IngredientDto
+import com.food.opencook.util.TextFold
 
 /**
  * Best-effort parser for a free-text ingredient line ("600 g Hackfleisch, halb und halb",
@@ -69,7 +70,8 @@ object IngredientLineParser {
     )
 
     fun parse(raw: String): IngredientDto {
-        val s = raw.trim()
+        // "٤٠٠ غ دقيق" → ASCII digits, so the quantity regex below sees a number.
+        val s = TextFold.digits(raw.trim())
         if (s.isEmpty()) return IngredientDto(null, null, raw.trim())
 
         // Leading unicode fraction, e.g. "½ TL Salz".
@@ -78,8 +80,8 @@ object IngredientLineParser {
             return IngredientDto(value, unit, name)
         }
 
-        val match = LEADING_QTY.find(s) ?: return IngredientDto(null, null, s)
-        val quantity = parseQuantity(match.groupValues[1]) ?: return IngredientDto(null, null, s)
+        val match = LEADING_QTY.find(s) ?: return IngredientDto(null, null, raw.trim())
+        val quantity = parseQuantity(match.groupValues[1]) ?: return IngredientDto(null, null, raw.trim())
         val rest = s.substring(match.range.last + 1).trim()
         val (unit, name) = splitUnit(rest)
         return IngredientDto(quantity, unit, name.ifBlank { s })
@@ -106,13 +108,24 @@ object IngredientLineParser {
         return nn / dd
     }
 
-    /** Split "<unit> <name>"; unit only when the first token is a known one. */
+    /** Longest unit spelling we try to match, in whitespace-separated words ("c. à soupe"). */
+    private const val MAX_UNIT_WORDS = 3
+
+    /**
+     * Split "<unit> <name>"; unit only when the leading token(s) form a known one.
+     * Longest match first: French measures are usually several words ("c. à soupe",
+     * "cuillère à café"), so a single-token test would leave them in the name.
+     * A unit is only taken when something is left over to be the ingredient name.
+     */
     private fun splitUnit(rest: String): Pair<String?, String> {
         if (rest.isBlank()) return null to rest
-        val parts = rest.split(Regex("\\s+"), limit = 2)
-        val candidate = parts[0]
-        val norm = candidate.lowercase()
-            .removeSuffix(".").removeSuffix("/n").removeSuffix("(n)").removeSuffix("(en)").removeSuffix(".")
-        return if (parts.size == 2 && norm in UNITS) candidate to parts[1].trim() else null to rest
+        val parts = rest.trim().split(Regex("\\s+"))
+        for (n in minOf(MAX_UNIT_WORDS, parts.size - 1) downTo 1) {
+            val candidate = parts.take(n).joinToString(" ")
+            val norm = TextFold.forMatch(candidate)
+                .removeSuffix(".").removeSuffix("/n").removeSuffix("(n)").removeSuffix("(en)").removeSuffix(".")
+            if (norm in UNITS) return candidate to parts.drop(n).joinToString(" ")
+        }
+        return null to rest
     }
 }

@@ -45,16 +45,15 @@ Releases go out via GitHub releases and F-Droid — there is no in-app updater.
 3. **Tag and publish.** Tag the commit `v<versionName>` and attach the signed
    `openCook-<versionName>-release.apk` to the GitHub release. F-Droid picks up new tags
    automatically (`UpdateCheckMode: Tags`), builds the release variant reproducibly and ships your
-   signed APK — see the reference recipe at `fdroid/com.food.opencook.yml`.
+   signed APK — the recipe lives upstream at
+   [fdroiddata/metadata/com.food.opencook.yml](https://gitlab.com/fdroid/fdroiddata/-/blob/master/metadata/com.food.opencook.yml).
 
 (A CI workflow also publishes a rolling debug APK as the `dev-build` prerelease on every push to
 `main`; see `.github/workflows/ci.yml`.)
 
 ## Server
 
-Requires Python 3.12+ and a vision-capable OpenAI-compatible API for extraction. This deployment
-uses LocalAI with the local `gemma4-12b` model; Ollama can also be selected by setting
-`OPENCOOK_AI_BASE_URL` and `OPENCOOK_AI_MODEL`.
+Requires Python 3.12+ and (for extraction) a vision model reached over the OpenAI chat-completions API. By default that is Ollama on the host with `qwen2.5vl:7b` pulled; this deployment uses LocalAI through the `OPENCOOK_VISION_*` variables. See [Self-hosting → Vision model](self-hosting.md#vision-model).
 
 ```bash
 cd server

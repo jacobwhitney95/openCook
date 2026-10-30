@@ -30,20 +30,26 @@ import java.util.Locale
  */
 object SourceCookbook {
 
-    // Nice casing for common German recipe sites; everything else is capitalized generically.
-    private val KNOWN = mapOf(
-        "chefkoch" to "Chefkoch",
-        "ndr" to "NDR",
-        "wdr" to "WDR",
-        "kochbar" to "Kochbar",
-        "lecker" to "Lecker",
-        "eatsmarter" to "EAT SMARTER",
-        "essen-und-trinken" to "Essen & Trinken",
-        "gaumenfreundin" to "Gaumenfreundin",
-        "kitchenstories" to "Kitchen Stories",
-        "springlane" to "Springlane",
-        "brigitte" to "Brigitte",
-    )
+    /**
+     * Domain label -> the name the site spells itself with ("eatsmarter" -> "EAT SMARTER").
+     * Filled from `discover_site_names` in `values-<lang>/arrays.xml` by `LocalizedLists` at
+     * startup, merged across every bundled language: which site a link came from has nothing to
+     * do with the language the phone is set to. Anything not listed is capitalized generically,
+     * which is already right for most sites.
+     */
+    @Volatile
+    private var names: Map<String, String> = emptyMap()
+
+    /** Replace the name table (called by `LocalizedLists`). */
+    fun setNames(newNames: Map<String, String>) {
+        if (newNames.isNotEmpty()) names = newNames
+    }
+
+    /** Active names — exposed so tests can snapshot and restore around [setNames]. */
+    val activeNames: Map<String, String> get() = names
+
+    /** Second-level labels that are part of a country suffix, never the site's own name. */
+    private val SUFFIX_LABELS = setOf("co", "com", "org", "net", "gov", "edu", "ac")
 
     /** Friendly cookbook name from a page URL, or null if it has no usable host. */
     fun fromUrl(url: String?): String? {
@@ -51,15 +57,19 @@ object SourceCookbook {
             ?.lowercase(Locale.ROOT)
             ?: return null
         val label = mainLabel(host) ?: return null
-        return KNOWN[label] ?: label.replaceFirstChar { it.titlecase(Locale.ROOT) }
+        return names[label] ?: label.replaceFirstChar { it.titlecase(Locale.ROOT) }
     }
 
     /** The registrable site label (second-level domain), stripping a leading "www." —
-     *  "www.chefkoch.de" → "chefkoch", "m.ndr.de" → "ndr". Null for bare hosts / IPs. */
+     *  "www.chefkoch.de" → "chefkoch", "m.ndr.de" → "ndr". Steps one further left when the
+     *  second level belongs to the suffix, so "bbc.co.uk" is "bbc" and not "co". Null for bare
+     *  hosts / IPs. */
     private fun mainLabel(host: String): String? {
         val parts = host.removePrefix("www.").split(".").filter { it.isNotEmpty() }
         if (parts.size < 2) return null                          // needs at least name.tld
         if (parts.all { it.toIntOrNull() != null }) return null  // looks like an IP address
-        return parts[parts.size - 2].takeIf { it.isNotBlank() }
+        val second = parts[parts.size - 2]
+        val label = if (second in SUFFIX_LABELS && parts.size >= 3) parts[parts.size - 3] else second
+        return label.takeIf { it.isNotBlank() }
     }
 }

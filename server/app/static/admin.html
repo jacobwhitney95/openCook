@@ -139,6 +139,14 @@
   .fields .v { white-space: pre-wrap; word-break: break-word; }
   .fields .v.json { font-family: ui-monospace, monospace; font-size: 12px; }
 
+  /* Prompts */
+  .card.wide { max-width: 980px; }
+  textarea.prompt { width: 100%; min-height: 300px; resize: vertical;
+    font: 13px/1.5 ui-monospace, monospace; }
+  details.fmt summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  details.fmt pre { white-space: pre-wrap; word-break: break-word; font: 12px/1.5 ui-monospace, monospace;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 8px 0 0; }
+
   .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
     background: var(--ink); color: var(--bg); padding: 11px 20px; border-radius: 10px;
     opacity: 0; transition: opacity .2s; pointer-events: none; box-shadow: 0 6px 20px rgba(44,33,24,.2); }
@@ -168,6 +176,7 @@
     <h2>Views</h2>
     <div class="navitem" data-view="sync">Sync log</div>
     <div class="navitem" data-view="households">Households</div>
+    <div class="navitem" data-view="prompts">Prompts</div>
     <div class="navitem" data-view="maintenance">Maintenance</div>
     <div class="navitem" data-view="lock" style="color:var(--muted)">Lock</div>
   </aside>
@@ -528,6 +537,104 @@ function householdCard(h) {
   return card;
 }
 
+// ---- Prompts ------------------------------------------------------------
+// Per recipe language, the owner may replace the *instructions* of the two extraction
+// prompts. The output format is shown read-only: the server always appends it, so an
+// edit can't break parsing. Every language is listed, the ones in use first, each
+// labelled with the households that use it.
+let promptLang = null;
+
+// A language in its own words ("Deutsch", "Français"), as the app's language picker does.
+function languageName(code) {
+  try { const n = new Intl.DisplayNames([code], { type: "language" }).of(code);
+    return n.charAt(0).toUpperCase() + n.slice(1); }
+  catch { return code.toUpperCase(); }
+}
+
+async function openPrompts() {
+  setActiveNav(document.querySelector('.navitem[data-view="prompts"]'));
+  const main = $("main"); main.innerHTML = "";
+  main.append(el("div", { className: "topbar" }, [el("h1", { textContent: "Extraction prompts" })]));
+  main.append(el("p", { className: "muted", style: "max-width:980px", textContent:
+    "How the vision model is told to read a cookbook photo, per recipe language. Edit the instructions to " +
+    "suit another model or your books; the output format is always appended by the server, so scans keep " +
+    "working. Changes apply from the next scan." }));
+  const { languages, follow_device: followDevice } = await apiJson("/admin/prompts");
+  const head = el("div");
+  const body = el("div");
+  main.append(head, body);
+
+  // In use first (stable within each group), and that's also what opens first.
+  languages.sort((a, b) => b.in_use - a.in_use);
+  if (!languages.some((l) => l.language === promptLang)) promptLang = (languages[0] || {}).language;
+
+  function paint() {
+    head.innerHTML = "";
+    const chips = el("div", { className: "chips" });
+    for (const l of languages) {
+      const c = chip(languageName(l.language), l.language === promptLang, usageLabel(l, followDevice));
+      c.onclick = () => { promptLang = l.language; paint(); };
+      chips.append(c);
+    }
+    head.append(chips);
+    body.innerHTML = "";
+    const set = languages.find((l) => l.language === promptLang);
+    if (!set) return;
+    const replace = (updated) => { languages[languages.indexOf(set)] = updated; paint(); };
+    body.append(
+      promptCard("Reading the recipe text", set, "text", replace),
+      promptCard("Finding dish photos", set, "box", replace),
+    );
+  }
+  paint();
+}
+
+// Who scans in a language — so it's clear which households an edit affects — and whether
+// its instructions are custom. A household following its phones' language is known here
+// only through its scans, which don't record the household: hence "(device language)".
+function usageLabel(l, followDevice) {
+  const who = [...l.used_by];
+  if (l.from_scans) who.push(...followDevice.map((n) => `${n} (device language)`));
+  const label = who.length ? `used by ${who.join(", ")}` : (l.in_use ? "no household yet" : "not used");
+  return (l.text_instructions || l.box_instructions) ? `${label} · custom` : label;
+}
+
+function promptCard(title, set, kind, onSaved) {
+  const custom = set[`${kind}_instructions`];
+  const fallback = set[`${kind}_default`];
+  const area = el("textarea", { className: "prompt", value: custom || fallback, spellcheck: false });
+  const save = el("button", { className: "primary", textContent: "Save", disabled: true });
+  const reset = custom ? el("button", { className: "danger", textContent: "Reset to default" }) : null;
+  area.oninput = () => (save.disabled = area.value === (custom || fallback));
+
+  async function patch(value, msg) {
+    try {
+      const updated = await apiJson(`/admin/prompts/${set.language}`,
+        { method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ [`${kind}_instructions`]: value }) });
+      toast(msg, "ok"); onSaved(updated);
+    } catch (e) { toast(e.message, "bad"); }
+  }
+  // Saving the default text verbatim is a reset: the language then keeps getting
+  // improvements to the built-in instructions.
+  save.onclick = () => area.value.trim() === fallback.trim()
+    ? patch("", "Back to the default") : patch(area.value, "Saved — used from the next scan");
+  if (reset) reset.onclick = () => { if (confirm("Discard your instructions and use the default?")) patch("", "Back to the default"); };
+
+  return el("div", { className: "card wide" }, [
+    el("div", { className: "row" }, [
+      el("h3", { textContent: title, style: "margin:0;flex:1" }),
+      el("span", { className: custom ? "badge" : "badge open", textContent: custom ? "custom" : "default" }),
+    ]),
+    el("div", { className: "row" }, [area]),
+    el("details", { className: "fmt" }, [
+      el("summary", { textContent: "Always appended: output format (not editable)" }),
+      el("pre", { textContent: set[`${kind}_format`] }),
+    ]),
+    el("div", { className: "row", style: "margin-top:12px" }, [save, reset]),
+  ]);
+}
+
 // ---- Maintenance --------------------------------------------------------
 async function openMaintenance() {
   setActiveNav(document.querySelector('.navitem[data-view="maintenance"]'));
@@ -620,6 +727,7 @@ document.querySelectorAll('.navitem[data-view]').forEach((n) => {
     if (v === "lock") return lock();
     if (v === "sync") return openSync();
     if (v === "households") return openHouseholds();
+    if (v === "prompts") return openPrompts();
     if (v === "maintenance") return openMaintenance();
   };
 });

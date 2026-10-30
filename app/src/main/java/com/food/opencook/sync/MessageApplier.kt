@@ -181,6 +181,7 @@ class MessageApplier @Inject constructor(
                         tags = str("tags"),
                         lastCookedAt = str("lastCookedAt"),
                         cookbook = str("cookbook"),
+                        sourceUrl = str("sourceUrl"),
                         servings = MessageCodec.decodeNullableInt(winning["servings"]),
                         category = str("category"),
                         mealTypes = str("mealTypes"),
@@ -284,7 +285,15 @@ class MessageApplier @Inject constructor(
                     return
                 }
                 val now = System.currentTimeMillis()
-                pantryDao.upsert(PantryItemEntity(id = rowId, name = str("name") ?: "", createdAt = now, updatedAt = now))
+                pantryDao.upsert(
+                    PantryItemEntity(
+                        id = rowId,
+                        name = str("name") ?: "",
+                        createdAt = now,
+                        updatedAt = now,
+                        basic = MessageCodec.decodeNullableBoolean(winning["basic"]),
+                    ),
+                )
             }
             SyncDatasets.MEALPLAN -> {
                 if (MessageCodec.isTrue(winning[SyncDatasets.COLUMN_DELETED])) {

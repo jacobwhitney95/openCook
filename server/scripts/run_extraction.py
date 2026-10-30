@@ -9,14 +9,14 @@ import json
 import sys
 from pathlib import Path
 
-from app.ai_client import OpenAICompatibleClient
 from app.config import get_settings
 from app.extraction import RecipeExtractor
+from app.vision_client import VisionClient
 
 
 async def main() -> None:
     settings = get_settings()
-    extractor = RecipeExtractor(OpenAICompatibleClient(), settings.images_dir)
+    extractor = RecipeExtractor(VisionClient(), settings.images_dir)
     recipes = await extractor.extract(Path(sys.argv[1]))
     print(json.dumps(recipes, ensure_ascii=False, indent=2))
     print(f"\n-> {len(recipes)} recipe(s); crops in {settings.images_dir}")

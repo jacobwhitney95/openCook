@@ -63,7 +63,7 @@ object ProteinGroups {
 
     /** Canonical protein group whose keyword occurs in [text], or null if none. */
     fun groupOf(text: String): String? {
-        val t = text.lowercase()
+        val t = TextFold.forMatch(text)
         return groups.firstOrNull { (_, keywords) -> keywords.any { it in t } }?.first
     }
 }

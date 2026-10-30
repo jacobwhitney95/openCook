@@ -35,6 +35,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -76,6 +79,23 @@ fun ReviewScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val nameRequiredMsg = stringResource(R.string.wizard_name_required)
+    // A pasted list split into rows: say so, with a way back for a paste meant as one entry.
+    val pasted by viewModel.pasted.collectAsStateWithLifecycle()
+    val resources = LocalContext.current.resources
+    val undoLabel = stringResource(R.string.undo)
+    LaunchedEffect(pasted) {
+        val event = pasted ?: return@LaunchedEffect
+        val text = resources.getQuantityString(
+            if (event.steps) R.plurals.review_pasted_steps else R.plurals.review_pasted_ingredients,
+            event.count, event.count,
+        )
+        // Cleared only afterwards: clearing first would restart this effect and cancel the
+        // snackbar before it is ever shown.
+        if (snackbarHostState.showSnackbar(text, undoLabel, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed) {
+            viewModel.undoPaste()
+        }
+        viewModel.clearPasted(event)
+    }
     LaunchedEffect(message) {
         message?.let { snackbarHostState.showSnackbar(it); viewModel.clearMessage() }
     }

@@ -44,6 +44,9 @@ class HouseholdSettings(BaseModel):
     # ("breakfast\nlunch\nsnack\ndinner"). The server only stores and echoes these;
     # null/absent means the app's own default (a single lunch slot).
     planned_meals: str | None = None
+    # Whether a meal may hold several dishes, added by hand in the app. Stored and echoed
+    # only; null/absent means off.
+    multi_dish_meals: bool | None = None
 
 
 class HouseholdSummary(BaseModel):
@@ -206,6 +209,40 @@ class AdminHouseholdPatch(BaseModel):
     name: str | None = None
     # None = leave unchanged, "" = clear the PIN, any other value = set/change it.
     pin: str | None = None
+
+
+class PromptSet(BaseModel):
+    """One content language's extraction prompts as the admin console edits them."""
+
+    language: str
+    # Scans on this server use it (see admin._language_usage) — the console lists these
+    # first.
+    in_use: bool
+    # Households whose "Recipe language" is this one, by name.
+    used_by: list[str] = []
+    # Known only from recent scans: a household following its devices' system language
+    # stores no setting, and a scan doesn't record its household.
+    from_scans: bool = False
+    # The built-in instructions, and the owner's replacement (null = built-in in use).
+    text_default: str
+    text_instructions: str | None
+    box_default: str
+    box_instructions: str | None
+    # Always appended by the server; shown read-only so an edit can refer to it.
+    text_format: str
+    box_format: str
+
+
+class PromptListResponse(BaseModel):
+    languages: list[PromptSet]
+    # Households on "follow the system language" — named next to the scan-only languages.
+    follow_device: list[str] = []
+
+
+class PromptPatch(BaseModel):
+    # None = leave unchanged, "" (or blank) = back to the built-in default, else replace.
+    text_instructions: str | None = None
+    box_instructions: str | None = None
 
 
 class ImportCreatedResponse(BaseModel):

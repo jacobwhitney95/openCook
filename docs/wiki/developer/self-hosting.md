@@ -6,11 +6,15 @@ network. The recommended deployment is Docker; a plain Python run also works.
 ## Prerequisites
 
 - A Linux machine on the same LAN/Wi-Fi as the phones.
-- A **vision-capable OpenAI-compatible Chat Completions API**. This deployment uses LocalAI,
-  configured at `http://127.0.0.1:8081/v1` with the local `gemma4-12b` model. Its Compose setup,
-  GPU backend, and model files are managed separately from this server. Ollama or another
-  compatible provider can be selected with the `OPENCOOK_AI_*` environment variables. Hosted
-  providers may receive uploaded recipe photos and may charge for inference.
+- **[Ollama](https://ollama.com) running on the host** with the vision model pulled — it needs the
+  GPU, so it stays on the host even when the server runs in a container:
+  ```bash
+  ollama pull qwen2.5vl:7b
+  ```
+  That is the default. This deployment uses LocalAI instead, at `http://127.0.0.1:8081/v1` with the
+  local `gemma4-12b` model; its Compose setup, GPU backend, and model files are managed separately
+  from this server. Other models and providers are covered in [Vision model](#vision-model).
+  Hosted providers may receive uploaded recipe photos and may charge for inference.
 
 ## Docker (recommended)
 
@@ -23,9 +27,10 @@ docker compose logs -f               # "Job worker started", mDNS advertise line
 ```
 
 The container runs **only the server** (FastAPI + SQLite + the job worker + mDNS); it calls the
-configured Chat Completions endpoint over HTTP. The default is LocalAI at
-`http://127.0.0.1:8081/v1`. `network_mode: host` is used so mDNS reaches the LAN and the container
-can reach LocalAI on localhost. `restart: unless-stopped` brings it back after a reboot.
+vision model over HTTP — by default the host's Ollama at `localhost:11434`, or LocalAI at
+`http://127.0.0.1:8081/v1` in this deployment. `network_mode: host` is used so mDNS reaches the LAN
+and the container can reach either on localhost. `restart: unless-stopped` brings it back after a
+reboot.
 
 Hardening (already set in `docker-compose.yml`): non-root user (uid 10001), `read_only` root
 filesystem with a `/tmp` tmpfs, `cap_drop: ALL`, `no-new-privileges`. Only `/data` is writable. No
@@ -56,16 +61,16 @@ Environment variables, all prefixed `OPENCOOK_` (a `server/.env` file is read to
 | `OPENCOOK_HOST` | `0.0.0.0` | HTTP bind address |
 | `OPENCOOK_PORT` | `8000` | HTTP port |
 | `OPENCOOK_SERVER_NAME` | hostname | Name advertised over mDNS |
-| `OPENCOOK_AI_BASE_URL` | `http://127.0.0.1:8081/v1` | OpenAI-compatible API base URL |
-| `OPENCOOK_AI_MODEL` | `gemma4-12b` | Vision model name served by that API |
-| `OPENCOOK_AI_API_KEY` | unset | Optional API key; set this in the ignored `server/.env` for providers that require one |
+| `OPENCOOK_VISION_BASE_URL` | `http://localhost:11434/v1` | OpenAI-compatible vision endpoint |
+| `OPENCOOK_VISION_MODEL` | `qwen2.5vl:7b` | Vision model |
+| `OPENCOOK_VISION_API_KEY` | — | Only for endpoints that require a key |
+| `OPENCOOK_VISION_PARAMS` | see [Vision model](#vision-model) | Extra request fields (JSON) |
 | `OPENCOOK_WORKER_POLL_INTERVAL` | `2.0` | Job worker poll interval (s) |
 | `OPENCOOK_BACKUP_DIR` | `<data_dir>/backups` | Backup archive location |
 | `OPENCOOK_BACKUP_KEEP` | `14` | Backups to retain (rotation) |
 | `OPENCOOK_ADMIN_PASSWORD` | — | Sets the admin password on first start (see below) |
 
-The client uses `POST /chat/completions` and sends the resized photo as a data URL. Choose a
-provider and model that support vision input. API keys belong in the ignored `server/.env`, never
+The client uses `POST /chat/completions` and sends the resized photo as a data URL. Choose aprovider and model that support vision input. API keys belong in the ignored `server/.env`, never
 in a committed Compose file. For the local LocalAI endpoint, leave the API key unset.
 
 ### VS Code with Continue
@@ -101,6 +106,46 @@ custom integration can use LocalAI. Install it, add a config entry with base URL
 `gemma4-12b` using Chat Completions. Expose only the entities you want the assistant to control;
 leave allowlisted service tools disabled unless needed. Immich's face-recognition and Smart Search
 use Immich's separate machine-learning API, not this OpenAI-compatible chat endpoint.
+### Vision model
+
+Photo scanning talks to the model over the **OpenAI chat-completions API**, which nearly every model
+server speaks. The default is the host's Ollama (`http://localhost:11434/v1`); to use something else,
+change the base URL and model:
+
+| Where the model runs | `OPENCOOK_VISION_BASE_URL` |
+|---|---|
+| Ollama on this machine (default) | `http://localhost:11434/v1` |
+| Ollama on another machine, e.g. a desktop with a GPU | `http://192.168.1.20:11434/v1` |
+| LocalAI on this machine (this deployment, `gemma4-12b`) | `http://127.0.0.1:8081/v1` |
+| llama.cpp (`llama-server`), LM Studio, vLLM | that server's address, ending in `/v1` |
+| A hosted service | its OpenAI-compatible URL, plus `OPENCOOK_VISION_API_KEY` |
+
+With an API key set, the server refuses to start unless the base URL is `https://` (or loopback,
+which never leaves the machine) — the key would otherwise cross the network unencrypted. Keep the
+key in `server/.env` readable only by you (`chmod 600`), never in git.
+
+`OPENCOOK_VISION_PARAMS` adds fields to every request, as a JSON object. The default is tuned for
+Ollama — near-exact reading and JSON output:
+
+```dotenv
+OPENCOOK_VISION_PARAMS={"temperature": 0.0001, "response_format": {"type": "json_object"}}
+```
+
+Setting it replaces the whole default, so repeat what you want to keep. Not every endpoint accepts
+every field: LM Studio has no `json_object` mode, OpenAI's reasoning models reject a `temperature`,
+and some servers take extras of their own (e.g. llama.cpp's `repeat_penalty`). If scans fail with
+the endpoint rejecting the request, the server log names the field — drop it, or set `{}` to send
+none. A cap such as `"max_tokens": 4000` stops a scan that gets stuck repeating itself after a
+minute instead of running for many.
+
+Only `qwen2.5vl:7b` has been validated against real cookbook pages; other models may read worse —
+the console's **Prompts** view lets you adapt the instructions to yours. If
+the endpoint is outside your home network, every scanned photo is sent there — the server logs a
+warning at startup when that is the case.
+
+Upgrading from an older server: `OPENCOOK_OLLAMA_BASE_URL` / `OPENCOOK_OLLAMA_MODEL` are no longer
+read. If you had set them, use `OPENCOOK_VISION_BASE_URL` (add `/v1` to the old address) and
+`OPENCOOK_VISION_MODEL` instead.
 
 ## Data
 
@@ -133,6 +178,15 @@ The console offers:
   household, with an added/edited/deleted breakdown and filter. Dish crops and AI original-scan
   photos render inline.
 - **Households** — rename, set/change/clear a PIN, or delete a household.
+- **Prompts** — per recipe language, replace the instructions the vision model gets for reading the
+  recipe text and for finding dish photos (e.g. for another model, or for your own books). Every
+  language is listed with the households that use it — the *Recipe language* they have set, or for a
+  household following its phones' language, the language of its recent scans — the ones in use
+  first. Before any household exists, English (the default) counts as in use. The output
+  format is always appended by the server and shown read-only, so an edit can't break scanning.
+  Applies from the next scan; *Reset to default* (or saving the default text unchanged) returns to the
+  built-in instructions, which keeps future improvements to them. Stored in the database, so it is
+  part of server backups and survives updates and a full reset.
 - **Maintenance** — create/download/restore backups, change the admin password, full reset.
 
 The web hostname is protected by the Authentik forward-auth outpost. After login, the page loads
@@ -179,5 +233,7 @@ releases. Release steps are in [Building → Releasing](building.md#releasing).
 
 - Most endpoints are **unauthenticated by design** (trusted LAN/VPN). **Never expose port 8000 to
   the internet.** Admin endpoints are password-protected; households can also set a join PIN.
-- The server reaches no filesystem beyond `/data` (in Docker) and sends recipe photos only to the
-  configured AI provider. The default provider is the local LocalAI service.
+- The server reaches no filesystem beyond `/data` (in Docker) and contacts no third party except the
+  vision endpoint — by default the host's Ollama, in this deployment LocalAI on loopback. If you
+  point it outside your home network, scanned photos go there; the server logs a warning at startup
+  when that is the case.

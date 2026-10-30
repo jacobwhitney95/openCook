@@ -11,10 +11,10 @@ server/app/
   main.py          # FastAPI app, lifespan (init_db, WAL checkpoint, mDNS, worker), router wiring
   config.py        # Settings — OPENCOOK_* env vars
   db.py            # SQLAlchemy engine, SQLite WAL, init_db(), get_session()
-  models.py        # ORM: Household, ServerConfig, SyncMessage, ImportRecord, Job
+  models.py        # ORM: Household, ServerConfig, PromptOverride, SyncMessage, ImportRecord, Job
   schemas.py       # Pydantic request/response DTOs
   extraction.py    # vision-model pipeline → schema.org/Recipe + cropped photos
-  ai_client.py     # OpenAI-compatible vision API client (retries/backoff)
+  vision_client.py # async OpenAI-compatible client for the vision model (retries/backoff)
   worker.py        # background job loop
   sync.py          # HLC + per-field LWW + Merkle trie  (see sync.md)
   discovery.py     # mDNS advertiser (_opencook._tcp)
@@ -52,12 +52,11 @@ ORM tables (`models.py`):
 `extraction.py` turns a photo into recipes in a few steps:
 
 1. **Orient & resize** — `ImageOps.exif_transpose`, then `_smart_resize` to longest side ≤ 1008 px
-   with both dimensions a multiple of 28 (keeps box coords mapping 1:1).
-2. **Text call** — the content-language prompt (`load_i18n(language).text_prompt`) → configured
-   vision provider →
+   with both dimensions a multiple of 28 (qwen2.5vl's pixel budget; keeps box coords mapping 1:1).
+2. **Text call** — the content-language prompt (`load_i18n(language).text_prompt()`: the language's *instructions* — or the owner's replacement from the admin console — plus its fixed *format*) → vision model →
    `{"recipes": [{title, servings, category, tags, prep_time, cook_time, ingredients[], steps[],
    nutrition, notes}]}` (lenient JSON parse). `category` is a universal key (`pasta/meat/…`).
-3. **Box call** — `box_prompt` → `{"dish_photos": [{recipe_title, box:[x1,y1,x2,y2]}]}` in
+3. **Box call** — `box_prompt()`, built the same way → `{"dish_photos": [{recipe_title, box:[x1,y1,x2,y2]}]}` in
    sent-image pixels (best-effort; failures are non-fatal).
 4. **Assign** — `_assign_boxes` greedily matches each photo to a recipe by title similarity (1:1).
 5. **Crop** — scale box coords back to the original image, crop, save to `images_dir` (JPEG q88).
@@ -65,12 +64,16 @@ ORM tables (`models.py`):
    (`openCookIngredients`, `openCookServings`, `openCookCategory`, `openCookTags`, `openCookNotes`,
    `openCookSourcePhoto`), `nutrition` (only if printed), and ISO-8601 `prepTime`/`cookTime`.
 
-Recipe extraction uses `app/ai_client.py`, which sends vision requests to the configured
-OpenAI-compatible Chat Completions endpoint. In this deployment, `OPENCOOK_AI_BASE_URL` defaults
-to `http://127.0.0.1:8081/v1`, `OPENCOOK_AI_MODEL` defaults to `gemma4-12b`, and an optional
-`OPENCOOK_AI_API_KEY` supplies credentials for providers that require them. Other providers must
-support image input and return the JSON requested by the extraction prompts. Transport and HTTP
-failures are retried with backoff.
+The model is reached via `vision_client.py` over the OpenAI chat-completions API at
+`OPENCOOK_VISION_BASE_URL` (default: the local Ollama at `http://localhost:11434/v1`), model
+`OPENCOOK_VISION_MODEL` (default `qwen2.5vl:7b`), optional `OPENCOOK_VISION_API_KEY`. This
+deployment sets these to LocalAI (`http://127.0.0.1:8081/v1`, `gemma4-12b`) in its Compose file.
+Besides the required fields only `OPENCOOK_VISION_PARAMS` (a JSON object) is sent; its default is
+tuned for Ollama: `temperature` `0.0001` as in qwen2.5vl's Modelfile (Ollama's `/v1` ignores the
+Modelfile and would sample at 1.0) and `response_format` `json_object`. Retries + backoff on
+transport/429/5xx errors; a 4xx is logged with the endpoint's message and fails the job. At startup
+the server warns if the endpoint resolves outside the home network. Other providers must support
+image input and return the JSON the extraction prompts request.
 
 **Localization:** prompts, duration words, units and category aliases live in per-language JSON
 under `app/i18n/` (`en.json` = source/fallback), loaded by `load_i18n(language)` where `language`
@@ -90,7 +93,8 @@ is the household content language sent with the job. Adding a language = a new `
 ## Config
 
 All env vars are prefixed `OPENCOOK_` (`config.py`, `.env` supported): `DATA_DIR`, `HOST`, `PORT`,
-`SERVER_NAME`, `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, `WORKER_POLL_INTERVAL`, `BACKUP_DIR`,
+`SERVER_NAME`, `VISION_BASE_URL`, `VISION_MODEL`, `VISION_API_KEY`, `VISION_PARAMS`,
+`WORKER_POLL_INTERVAL`, `BACKUP_DIR`,
 `BACKUP_KEEP`, `ADMIN_PASSWORD`. See the table in [Self-hosting](self-hosting.md).
 
 ## Tests

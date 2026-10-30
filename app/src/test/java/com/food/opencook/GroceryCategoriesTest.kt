@@ -20,6 +20,7 @@ package com.food.opencook
 
 import com.food.opencook.util.GroceryCategories
 import com.food.opencook.util.GroceryCategory
+import com.food.opencook.util.TextFold
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -81,6 +82,35 @@ class GroceryCategoriesTest {
             // PANTRY is listed before DAIRY → "Kokosmilch"/"coconut milk" stay out of DAIRY.
             assertEquals(GroceryCategory.PANTRY, GroceryCategories.categorize("Kokosmilch"))
             assertEquals(GroceryCategory.PANTRY, GroceryCategories.categorize("coconut milk"))
+        } finally {
+            GroceryCategories.setRules(original)
+        }
+    }
+
+    /** Arabic keywords are folded like the names, so article and spelling variants still hit. */
+    @Test
+    fun arabicKeywordsIgnoreArticleAndKeepWholeWords() {
+        val original = GroceryCategories.activeRules
+        fun fold(vararg words: String) = words.map(TextFold::forMatch)
+        try {
+            GroceryCategories.setRules(
+                listOf(
+                    GroceryCategory.MEAT_FISH to fold("لحم مفروم", "دجاج"),
+                    GroceryCategory.PRODUCE to fold("بصل", "ثوم"),
+                    GroceryCategory.SPICES to fold("زيت ", "خل "),
+                    GroceryCategory.PANTRY to fold("أرز"),
+                ),
+            )
+            assertEquals(GroceryCategory.MEAT_FISH, GroceryCategories.categorize("الدجاج"))
+            assertEquals(GroceryCategory.MEAT_FISH, GroceryCategories.categorize("لحم مفروم"))
+            // "مفروم" alone means chopped: chopped onion stays with the vegetables.
+            assertEquals(GroceryCategory.PRODUCE, GroceryCategories.categorize("بصل مفروم"))
+            assertEquals(GroceryCategory.PANTRY, GroceryCategories.categorize("ارز"))
+            // The trailing space keeps a keyword whole: oil and vinegar, not olives and pickles.
+            assertEquals(GroceryCategory.SPICES, GroceryCategories.categorize("زيت"))
+            assertEquals(GroceryCategory.SPICES, GroceryCategories.categorize("خل التفاح"))
+            assertEquals(GroceryCategory.OTHER, GroceryCategories.categorize("زيتون"))
+            assertEquals(GroceryCategory.OTHER, GroceryCategories.categorize("مخلل"))
         } finally {
             GroceryCategories.setRules(original)
         }

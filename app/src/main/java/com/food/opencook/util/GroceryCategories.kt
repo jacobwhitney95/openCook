@@ -87,7 +87,7 @@ object GroceryCategories {
     val activeRules: List<Pair<GroceryCategory, List<String>>> get() = rules
 
     fun categorize(name: String): GroceryCategory {
-        val n = " ${name.lowercase().trim()} "
+        val n = " ${TextFold.forMatch(name).trim()} "
         for ((category, keywords) in rules) {
             if (keywords.any { n.contains(it) }) return category
         }

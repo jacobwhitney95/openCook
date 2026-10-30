@@ -27,8 +27,11 @@ object PantryMessageEncoder {
     private val json = Json
     private val d = SyncDatasets.PANTRY
 
-    fun encode(item: PantryItemEntity): List<FieldChange> = listOf(
+    fun encode(item: PantryItemEntity): List<FieldChange> = listOfNotNull(
         FieldChange(d, item.id, "name", json.encodeToString(String.serializer(), item.name)),
+        // Only once the household has decided: an unset flag must never out-vote (per-field
+        // LWW) a decision another device made — nor would an older app know the field.
+        item.basic?.let { FieldChange(d, item.id, "basic", it.toString()) },
         FieldChange(d, item.id, SyncDatasets.COLUMN_DELETED, "false"),
     )
 
